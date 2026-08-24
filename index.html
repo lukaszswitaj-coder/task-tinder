@@ -1,212 +1,50 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Task Swipe</title>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-  <style>
-    body { 
-      font-family: sans-serif; 
-      display: flex; 
-      justify-content: center; 
-      align-items: center; 
-      height: 100vh; 
-      margin: 0; 
-      background: #121212; 
-      color: #fff; 
-      flex-direction: column;
-      overflow: hidden;
-      touch-action: none;
-    }
-    #card { 
-      width: 80%; 
-      max-width: 350px; 
-      height: 300px; 
-      background: #1e1e1e; 
-      border-radius: 16px; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      padding: 20px; 
-      text-align: center; 
-      font-size: 1.2rem; 
-      box-shadow: 0 10px 20px rgba(0,0,0,0.5); 
-      user-select: none; 
-      position: absolute; 
-    }
-    #modal { 
-      display: none; 
-      position: fixed; 
-      top: 0; 
-      left: 0; 
-      width: 100%; 
-      height: 100%; 
-      background: rgba(0,0,0,0.8); 
-      justify-content: center; 
-      align-items: center; 
-      z-index: 10;
-    }
-    .modal-content { 
-      background: #222; 
-      padding: 20px; 
-      border-radius: 8px; 
-      text-align: center; 
-    }
-    button { 
-      padding: 10px 20px; 
-      font-size: 1rem; 
-      margin-top: 10px; 
-      cursor: pointer; 
-      border-radius: 8px;
-      border: none;
-      background: #007bff;
-      color: white;
-    }
-    #switch-account {
-      position: absolute;
-      bottom: 20px;
-      background: transparent;
-      color: #888;
-      font-size: 0.8rem;
-      text-decoration: underline;
-    }
-  </style>
-</head>
-<body>
+async function loadTasks() {
+  const card = document.getElementById('card');
+  const taskTitle = document.getElementById('task-title');
+  const taskListName = document.getElementById('task-list-name');
 
-  <button id="login-btn" onclick="handleAuth()">Zaloguj z Google</button>
-  <div id="card" style="display:none;">Ładowanie zadań...</div>
-  
-  <button id="switch-account" style="display:none;" onclick="handleAuth()">Zmień konto Google</button>
+  taskTitle.innerText = "Ładowanie zadań...";
+  card.style.display = 'flex';
 
-  <div id="modal">
-    <div class="modal-content">
-      <h3>Wybierz datę</h3>
-      <input type="date" id="custom-date">
-      <br><br>
-      <button onclick="submitCustomDate()">Zapisz</button>
-    </div>
-  </div>
+  try {
+    const listsRes = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    const listsData = await listsRes.json();
+    const taskLists = listsData.items || [];
 
-  <script>
-    const CLIENT_ID = '21542541771-b5kbbkkjqivcbrbs7s5dcpittgu1q0fe.apps.googleusercontent.com';
-    const SCOPES = 'https://www.googleapis.com/auth/tasks';
-    let accessToken = null, tasks = [], currentIndex = 0, tokenClient;
+    tasks = [];
 
-    function handleAuth() {
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID, 
-        scope: SCOPES,
-        prompt: 'select_account',
-        callback: (res) => { 
-          if (res.error) return;
-          accessToken = res.access_token; 
-          document.getElementById('login-btn').style.display = 'none'; 
-          document.getElementById('switch-account').style.display = 'block';
-          currentIndex = 0;
-          loadTasks(); 
-        }
-      });
-      tokenClient.requestAccessToken();
-    }
-
-    async function loadTasks() {
-      const card = document.getElementById('card');
-      card.innerText = "Ładowanie zadań...";
-      card.style.display = 'flex';
-
-      try {
-        // 1. Pobierz wszystkie listy zadań użytkownika
-        const listsRes = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', {
-          headers: { Authorization: `Bearer ${accessToken}` }
-        });
-        const listsData = await listsRes.json();
-        const taskLists = listsData.items || [];
-
-        const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
-        tasks = [];
-
-        // 2. Pobierz zadania ze wszystkich list
-        for (const list of taskLists) {
-          const res = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false`, {
-            headers: { Authorization: `Bearer ${accessToken}` }
-          });
-          const data = await res.json();
-          
-          const filtered = (data.items || []).filter(t => {
-            if (!t.due) return true; // zadania bez daty
-            const taskDateStr = t.due.split('T')[0];
-            return taskDateStr <= todayStr; // zaległe + dzisiejsze
-          }).map(t => ({ ...t, listId: list.id }));
-
-          tasks = tasks.concat(filtered);
-        }
-
-        showNextTask();
-      } catch (err) {
-        console.error(err);
-        card.innerText = "Błąd pobierania zadań!";
-      }
-    }
-
-    function showNextTask() {
-      const card = document.getElementById('card');
-      if (currentIndex >= tasks.length) {
-        card.innerText = "Brak zaległych zadań! 🎉";
-        return;
-      }
-      card.style.display = 'flex';
-      card.style.transform = 'none';
-      card.innerText = tasks[currentIndex].title;
-      initGestures(card);
-    }
-
-    function initGestures(el) {
-      const mc = new Hammer(el);
-      mc.get('swipe').set({ direction: Hammer.DIRECTION_ALL });
+    for (const list of taskLists) {
+      const items = await fetchAllTasksFromList(list.id);
       
-      mc.on("swipedown", () => updateTask('delete'));
-      mc.on("swiperight", () => updateTask('today'));
-      mc.on("swipeleft", () => updateTask('tomorrow'));
-      mc.on("swipeup", () => updateTask('monday'));
-      mc.on("press", () => document.getElementById('modal').style.display = 'flex');
+      // BRAK FILTROWANIA - bierzemy WSZYSTKIE nieukończone zadania
+      const mapped = items
+        .filter(t => t.title && t.title.trim() !== '')
+        .map(t => ({ ...t, listId: list.id, listTitle: list.title }));
+
+      tasks = tasks.concat(mapped);
     }
 
-    async function updateTask(action, customDate = null) {
-      const task = tasks[currentIndex];
-      const url = `https://tasks.googleapis.com/tasks/v1/lists/${task.listId}/tasks/${task.id}`;
-      let method = 'PATCH', body = {};
-
-      if (action === 'delete') {
-        method = 'DELETE';
-      } else {
-        let date = new Date();
-        if (action === 'tomorrow') date.setDate(date.getDate() + 1);
-        if (action === 'monday') date.setDate(date.getDate() + ((1 + 7 - date.getDay()) % 7 || 7));
-        if (action === 'custom') date = new Date(customDate);
-        body = JSON.stringify({ due: date.toISOString() });
-      }
-
-      await fetch(url, {
-        method, 
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: method !== 'DELETE' ? body : null
-      });
-
-      currentIndex++;
-      showNextTask();
+    if (tasks.length === 0) {
+      taskTitle.innerText = "API zwróciło 0 zadań na tej liście!";
+    } else {
+      // Wyświetlamy tytuł zadania ORAZ to, co dokładnie przychodzi w polu `due`
+      const first = tasks[0];
+      const todayISO = new Date().toISOString();
+      
+      taskListName.innerText = first.listTitle;
+      taskTitle.innerHTML = `
+        <b>Tytuł:</b> ${first.title}<br><br>
+        <small style="color:#aaa">
+          Data w API (due): ${first.due || 'brak daty'}<br>
+          Dzisiaj (ISO): ${todayISO}
+        </small>
+      `;
     }
 
-    function submitCustomDate() {
-      const val = document.getElementById('custom-date').value;
-      if (val) {
-        document.getElementById('modal').style.display = 'none';
-        updateTask('custom', val);
-      }
-    }
-  </script>
-</body>
-</html>
+  } catch (err) {
+    console.error(err);
+    taskTitle.innerText = "Błąd połączenia z API!";
+  }
+}
