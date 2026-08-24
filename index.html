@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Swipe</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+  <style>
+    body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #121212; color: #fff; flex-direction: column; }
+    #card { width: 80%; max-width: 350px; height: 300px; background: #1e1e1e; border-radius: 16px; display: flex; align-items: center; justify-content: center; padding: 20px; text-align: center; font-size: 1.2rem; box-shadow: 0 10px 20px rgba(0,0,0,0.5); user-select: none; position: absolute; }
+    #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; }
+    .modal-content { background: #222; padding: 20px; border-radius: 8px; text-align: center; }
+    button { padding: 10px 20px; font-size: 1rem; margin-top: 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <button id="login-btn" onclick="handleAuth()">Zaloguj z Google</button>
+  <div id="card" style="display:none;">Ładowanie zadań...</div>
+
+  <div id="modal">
+    <div class="modal-content">
+      <h3>Wybież datę</h3>
+      <input type="date" id="custom-date">
+      <br><br>
+      <button onclick="submitCustomDate()">Zapisz</button>
+    </div>
+  </div>
+
+  <script>
+    const CLIENT_ID = 'TWOJ_CLIENT_ID.apps.googleusercontent.com';
+    const SCOPES = 'https://www.googleapis.com/auth/tasks';
+    let accessToken = null, tasks = [], currentIndex = 0, tokenClient;
+
+    function handleAuth() {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID, scope: SCOPES,
+        callback: (res) => { accessToken = res.access_token; document.getElementById('login-btn').style.display = 'none'; loadTasks(); }
+      });
+      tokenClient.requestAccessToken();
+    }
+
+    async function loadTasks() {
+      const res = await fetch('https://tasks.googleapis.com/tasks/v1/lists/@default/tasks?showCompleted=false', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const data = await res.json();
+      const today = new Date(); today.setHours(0,0,0,0);
+      
+      // Filtrowanie: tylko zaległe i dzisiejsze
+      tasks = (data.items || []).filter(t => !t.due || new Date(t.due) < today);
+      showNextTask();
+    }
+
+    function showNextTask() {
+      const card = document.getElementById('card');
+      if (currentIndex >= tasks.length) {
+        card.innerText = "Brak zaległych zadań!";
+        return;
+      }
+      card.style.display = 'flex';
+      card.style.transform = 'none';
+      card.innerText = tasks[currentIndex].title;
+      initGestures(card);
+    }
+
+    function initGestures(el) {
+      const mc = new Hammer(el);
+      mc.get('swipe').set({ direction: Hammer.DIRECTION_ALL });
+      
+      mc.on("swipedown", () => updateTask('delete'));
+      mc.on("swiperight", () => updateTask('today'));
+      mc.on("swipeleft", () => updateTask('tomorrow'));
+      mc.on("swipeup", () => updateTask('monday'));
+      mc.on("press", () => document.getElementById('modal').style.display = 'flex');
+    }
+
+    async function updateTask(action, customDate = null) {
+      const task = tasks[currentIndex];
+      const url = `https://tasks.googleapis.com/tasks/v1/lists/@default/tasks/${task.id}`;
+      let method = 'PATCH', body = {};
+
+      if (action === 'delete') {
+        method = 'DELETE';
+      } else {
+        let date = new Date();
+        if (action === 'tomorrow') date.setDate(date.getDate() + 1);
+        if (action === 'monday') date.setDate(date.getDate() + ((1 + 7 - date.getDay()) % 7 || 7));
+        if (action === 'custom') date = new Date(customDate);
+        body = JSON.stringify({ due: date.toISOString() });
+      }
+
+      await fetch(url, {
+        method, headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: method !== 'DELETE' ? body : null
+      });
+
+      currentIndex++;
+      showNextTask();
+    }
+
+    function submitCustomDate() {
+      const val = document.getElementById('custom-date').value;
+      if (val) {
+        document.getElementById('modal').style.display = 'none';
+        updateTask('custom', val);
+      }
+    }
+  </script>
+</body>
+</html>
