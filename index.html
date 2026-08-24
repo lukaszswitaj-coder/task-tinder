@@ -3,71 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Task Swipe</title>
+  <title>Task Swipe - Debug</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
   <style>
     body { 
-      font-family: sans-serif; 
+      font-family: monospace, sans-serif; 
       display: flex; 
       justify-content: center; 
       align-items: center; 
-      height: 100vh; 
+      min-height: 100vh; 
       margin: 0; 
       background: #121212; 
       color: #fff; 
       flex-direction: column;
-      overflow: hidden;
-      touch-action: none;
+      padding: 10px;
+      box-sizing: border-box;
     }
     #card { 
-      width: 85%; 
-      max-width: 350px; 
-      height: 320px; 
+      width: 90%; 
+      max-width: 380px; 
+      min-height: 320px; 
       background: #1e1e1e; 
       border-radius: 16px; 
       display: flex; 
       flex-direction: column;
       align-items: center; 
-      justify-content: center; 
+      justify-content: flex-start; 
       padding: 20px; 
-      text-align: center; 
       box-shadow: 0 10px 20px rgba(0,0,0,0.5); 
-      user-select: none; 
-      position: absolute; 
       box-sizing: border-box;
     }
-    #task-title {
-      font-size: 1.1rem;
-      line-height: 1.4;
-    }
-    #task-list-name {
+    #debug-log {
+      width: 100%;
       font-size: 0.8rem;
-      color: #007bff;
-      margin-bottom: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    #modal { 
-      display: none; 
-      position: fixed; 
-      top: 0; 
-      left: 0; 
-      width: 100%; 
-      height: 100%; 
-      background: rgba(0,0,0,0.8); 
-      justify-content: center; 
-      align-items: center; 
-      z-index: 10;
-    }
-    .modal-content { 
-      background: #222; 
-      padding: 20px; 
-      border-radius: 8px; 
-      text-align: center; 
+      color: #00ff66;
+      text-align: left;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.4;
+      background: #000;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
+      max-height: 180px;
+      overflow-y: auto;
     }
     button { 
-      padding: 10px 20px; 
+      padding: 12px 24px; 
       font-size: 1rem; 
       margin-top: 10px; 
       cursor: pointer; 
@@ -77,8 +60,7 @@
       color: white;
     }
     #switch-account {
-      position: absolute;
-      bottom: 20px;
+      margin-top: 20px;
       background: transparent;
       color: #888;
       font-size: 0.8rem;
@@ -91,25 +73,22 @@
   <button id="login-btn" onclick="handleAuth()">Zaloguj z Google</button>
   
   <div id="card" style="display:none;">
-    <div id="task-list-name"></div>
-    <div id="task-title">Ładowanie zadań...</div>
+    <h3 style="margin-top:0;" id="status-head">Diagnostyka API</h3>
+    <div id="debug-log">Inicjalizacja...</div>
   </div>
   
   <button id="switch-account" style="display:none;" onclick="handleAuth()">Zmień konto Google</button>
 
-  <div id="modal">
-    <div class="modal-content">
-      <h3>Wybierz datę</h3>
-      <input type="date" id="custom-date">
-      <br><br>
-      <button onclick="submitCustomDate()">Zapisz</button>
-    </div>
-  </div>
-
   <script>
     const CLIENT_ID = '21542541771-b5kbbkkjqivcbrbs7s5dcpittgu1q0fe.apps.googleusercontent.com';
     const SCOPES = 'https://www.googleapis.com/auth/tasks';
-    let accessToken = null, tasks = [], currentIndex = 0, tokenClient;
+    let accessToken = null, tasks = [], tokenClient;
+
+    function log(msg) {
+      const el = document.getElementById('debug-log');
+      el.innerText += '\n' + msg;
+      el.scrollTop = el.scrollHeight;
+    }
 
     function handleAuth() {
       tokenClient = google.accounts.oauth2.initTokenClient({
@@ -117,142 +96,81 @@
         scope: SCOPES,
         prompt: 'select_account',
         callback: (res) => { 
-          if (res.error) return;
+          if (res.error) {
+            alert('Błąd autoryzacji: ' + JSON.stringify(res));
+            return;
+          }
           accessToken = res.access_token; 
           document.getElementById('login-btn').style.display = 'none'; 
           document.getElementById('switch-account').style.display = 'block';
-          currentIndex = 0;
-          loadTasks(); 
+          document.getElementById('card').style.display = 'flex';
+          document.getElementById('debug-log').innerText = 'Zalogowano! Pobieranie danych...';
+          loadTasksDebug(); 
         }
       });
       tokenClient.requestAccessToken();
     }
 
-    async function fetchAllTasksFromList(listId) {
-      let allItems = [];
-      let pageToken = '';
-      
-      do {
-        let url = `https://tasks.googleapis.com/tasks/v1/lists/${listId}/tasks?showCompleted=false&maxResults=100`;
-        if (pageToken) url += `&pageToken=${pageToken}`;
-
-        const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-        const data = await res.json();
-        
-        if (data.items) {
-          allItems = allItems.concat(data.items);
-        }
-        pageToken = data.nextPageToken || '';
-      } while (pageToken);
-
-      return allItems;
-    }
-
-    async function loadTasks() {
-      const card = document.getElementById('card');
-      const taskTitle = document.getElementById('task-title');
-      const taskListName = document.getElementById('task-list-name');
-
-      taskTitle.innerText = "Ładowanie zadań...";
-      taskListName.innerText = "";
-      card.style.display = 'flex';
-
+    async function loadTasksDebug() {
       try {
+        log('➔ Wysyłam zapytanie o listy zadań...');
         const listsRes = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', {
           headers: { Authorization: `Bearer ${accessToken}` }
         });
+
+        if (!listsRes.ok) {
+          log(`❌ BŁĄD LIST (${listsRes.status}): ${await listsRes.text()}`);
+          return;
+        }
+
         const listsData = await listsRes.json();
         const taskLists = listsData.items || [];
+        log(`✔ Znaleziono list zadań: ${taskLists.length}`);
 
+        let totalRawTasks = 0;
         tasks = [];
 
         for (const list of taskLists) {
-          const items = await fetchAllTasksFromList(list.id);
+          log(`➔ Pobieram zadania z listy: "${list.title}"...`);
+          
+          const res = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&maxResults=100`, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
 
-          const mapped = items
-            .filter(t => t.title && t.title.trim() !== '')
-            .map(t => ({ ...t, listId: list.id, listTitle: list.title }));
+          if (!res.ok) {
+            log(`❌ Błąd pobierania zadań dla "${list.title}": ${res.status}`);
+            continue;
+          }
 
-          tasks = tasks.concat(mapped);
+          const data = await res.json();
+          const items = data.items || [];
+          log(`   -> Znalazłem w niej nieukończonych zadań: ${items.length}`);
+          
+          totalRawTasks += items.length;
+
+          items.forEach(t => {
+            tasks.push({
+              title: t.title,
+              due: t.due || 'BRAK DATY',
+              listTitle: list.title
+            });
+          });
         }
 
-        showNextTask();
+        log(`\n============================`);
+        log(`SUMA POBRANYCH ZADAŃ: ${totalRawTasks}`);
+        log(`============================`);
+
+        if (tasks.length > 0) {
+          log(`\nPierwsze zadanie na liście:`);
+          log(`Tytuł: "${tasks[0].title}"`);
+          log(`Data: ${tasks[0].due}`);
+        } else {
+          log(`\n⚠️ API zwróciło 0 nieukończonych zadań ze wszystkich list!`);
+        }
+
       } catch (err) {
-        console.error(err);
-        taskTitle.innerText = "Błąd pobierania zadań!";
-      }
-    }
-
-    function showNextTask() {
-      const card = document.getElementById('card');
-      const taskTitle = document.getElementById('task-title');
-      const taskListName = document.getElementById('task-list-name');
-
-      if (currentIndex >= tasks.length) {
-        taskListName.innerText = "";
-        taskTitle.innerText = "Brak nieukończonych zadań na tym koncie!";
-        return;
-      }
-
-      const currentTask = tasks[currentIndex];
-      card.style.display = 'flex';
-      card.style.transform = 'none';
-      
-      const todayISO = new Date().toISOString();
-
-      taskListName.innerText = currentTask.listTitle;
-      taskTitle.innerHTML = `
-        <b>Tytuł:</b> ${currentTask.title}<br><br>
-        <small style="color:#aaa; font-size:0.85rem">
-          Data w API (due):<br><b>${currentTask.due || 'brak daty'}</b><br><br>
-          Dzisiaj (ISO):<br><b>${todayISO}</b>
-        </small>
-      `;
-
-      initGestures(card);
-    }
-
-    function initGestures(el) {
-      const mc = new Hammer(el);
-      mc.get('swipe').set({ direction: Hammer.DIRECTION_ALL });
-      
-      mc.on("swipedown", () => updateTask('delete'));
-      mc.on("swiperight", () => updateTask('today'));
-      mc.on("swipeleft", () => updateTask('tomorrow'));
-      mc.on("swipeup", () => updateTask('monday'));
-      mc.on("press", () => document.getElementById('modal').style.display = 'flex');
-    }
-
-    async function updateTask(action, customDate = null) {
-      const task = tasks[currentIndex];
-      const url = `https://tasks.googleapis.com/tasks/v1/lists/${task.listId}/tasks/${task.id}`;
-      let method = 'PATCH', body = {};
-
-      if (action === 'delete') {
-        method = 'DELETE';
-      } else {
-        let date = new Date();
-        if (action === 'tomorrow') date.setDate(date.getDate() + 1);
-        if (action === 'monday') date.setDate(date.getDate() + ((1 + 7 - date.getDay()) % 7 || 7));
-        if (action === 'custom') date = new Date(customDate);
-        body = JSON.stringify({ due: date.toISOString() });
-      }
-
-      await fetch(url, {
-        method, 
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: method !== 'DELETE' ? body : null
-      });
-
-      currentIndex++;
-      showNextTask();
-    }
-
-    function submitCustomDate() {
-      const val = document.getElementById('custom-date').value;
-      if (val) {
-        document.getElementById('modal').style.display = 'none';
-        updateTask('custom', val);
+        log(`❌ Błąd JS: ${err.message}`);
       }
     }
   </script>
