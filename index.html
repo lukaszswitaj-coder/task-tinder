@@ -25,12 +25,12 @@
     
     .hint-bar {
       font-size: 0.85rem;
-      color: #00d2ff;
+      color: #a55eea;
       text-align: center;
-      background: rgba(0, 210, 255, 0.08);
+      background: rgba(165, 94, 234, 0.08);
       padding: 10px 14px;
       border-radius: 12px;
-      border: 1px solid rgba(0, 210, 255, 0.2);
+      border: 1px solid rgba(165, 94, 234, 0.2);
       width: 100%;
       max-width: 360px;
     }
@@ -70,8 +70,10 @@
       box-shadow: 0 12px 30px rgba(0,0,0,0.7); 
       user-select: none; 
       position: relative; 
-      border: 1px solid #2e2e3e;
+      border: 2px solid #2e2e3e;
       overflow-y: auto;
+      will-change: transform;
+      transition: background-color 0.2s, border-color 0.2s;
     }
 
     #task-title {
@@ -172,20 +174,21 @@
     <div id="card" style="display:none;">
       <div id="task-list-name"></div>
       <div id="task-due-date"></div>
-      <div id="task-title">Ładowanie zadań...</div>
-      <div style="font-size: 0.75rem; color: #777; margin-top: 10px;">👆 Przytrzymaj = Wybór daty w kalendarzu</div>
+      <div id="task-title">Ładowanie zaległych zadań...</div>
+      <div id="hold-hint" style="font-size: 0.75rem; color: #777; margin-top: 10px;">👆 Przytrzymaj = Wybór daty w kalendarzu</div>
+      <button id="reload-btn" style="display:none;" onclick="reloadTasks()">Odśwież listę 🔄</button>
     </div>
   </div>
 
   <!-- Wskaźniki Lewo / Prawo -->
   <div class="horizontal-hints">
-    <span>⬅️ <b>LEWO:</b> Przesuń na jutro</span>
-    <span><b>PRAWO:</b> Przesuń na dziś ➡️</span>
+    <span>⬅️ <b>LEWO:</b> Na jutro</span>
+    <span><b>PRAWO:</b> Na dziś ➡️</span>
   </div>
 
   <!-- Dolna instrukcja -->
   <div class="hint-bar" style="color: #2ed573; background: rgba(46, 213, 115, 0.08); border-color: rgba(46, 213, 115, 0.2);">
-    ⬇️ <b>SWIPE DOWN:</b> Oznacz jako zrobione (odhacz)
+    ⬇️ <b>SWIPE DOWN:</b> Oznacz jako zrobione
   </div>
 
   <button id="switch-account" style="display:none;" onclick="handleAuth()">Zmień konto Google</button>
@@ -203,7 +206,7 @@
   <script>
     const CLIENT_ID = '21542541771-b5kbbkkjqivcbrbs7s5dcpittgu1q0fe.apps.googleusercontent.com';
     const SCOPES = 'https://www.googleapis.com/auth/tasks';
-    let accessToken = null, tasks = [], currentIndex = 0, tokenClient;
+    let accessToken = null, tasks = [], currentIndex = 0, tokenClient, hammerManager = null;
 
     function handleAuth() {
       tokenClient = google.accounts.oauth2.initTokenClient({
@@ -215,31 +218,17 @@
           accessToken = res.access_token; 
           document.getElementById('login-btn').style.display = 'none'; 
           document.getElementById('switch-account').style.display = 'block';
-          currentIndex = 0;
-          loadTasks(); 
+          reloadTasks();
         }
       });
       tokenClient.requestAccessToken();
     }
 
-    async function fetchAllTasksFromList(listId) {
-      let allItems = [];
-      let pageToken = '';
-      
-      do {
-        let url = `https://tasks.googleapis.com/tasks/v1/lists/${listId}/tasks?showCompleted=false&maxResults=100`;
-        if (pageToken) url += `&pageToken=${pageToken}`;
-
-        const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-        const data = await res.json();
-        
-        if (data.items) {
-          allItems = allItems.concat(data.items);
-        }
-        pageToken = data.nextPageToken || '';
-      } while (pageToken);
-
-      return allItems;
+    function reloadTasks() {
+      currentIndex = 0;
+      tasks = [];
+      document.getElementById('reload-btn').style.display = 'none';
+      loadTasks();
     }
 
     async function loadTasks() {
@@ -260,31 +249,29 @@
         const listsData = await listsRes.json();
         const taskLists = listsData.items || [];
 
-        // Pobieramy dzisiejszą datę w formacie YYYY-MM-DD
+        // Pobieramy początek dzisiejszego dnia w UTC dla filtra Google API dueMax
         const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
+        now.setHours(0, 0, 0, 0);
+        const dueMaxStr = now.toISOString();
 
         tasks = [];
 
         for (const list of taskLists) {
-          const items = await fetchAllTasksFromList(list.id);
+          // Filtr dueMax wprost w zapytaniu HTTP do API Google
+          const res = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&dueMax=${dueMaxStr}&maxResults=100`, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
+          const data = await res.json();
+          const items = data.items || [];
 
-          const filtered = items.filter(t => {
-            if (!t.title || t.title.trim() === '') return false;
-            if (!t.due) return false; // Odrzucamy zadania bez daty
-
-            const taskDateStr = t.due.split('T')[0];
-            
-            // STYL STRICTLY OLD: tylko zadania z datą MNIEJSZĄ niż dzisiaj (wczoraj i wcześniej)
-            return taskDateStr < todayStr;
-          }).map(t => ({ 
+          const mapped = items.filter(t => t.title && t.title.trim() !== '' && t.due).map(t => ({ 
             ...t, 
             listId: list.id, 
             listTitle: list.title,
             formattedDueDate: t.due.split('T')[0]
           }));
 
-          tasks = tasks.concat(filtered);
+          tasks = tasks.concat(mapped);
         }
 
         showNextTask();
@@ -299,17 +286,29 @@
       const taskTitle = document.getElementById('task-title');
       const taskListName = document.getElementById('task-list-name');
       const taskDueDate = document.getElementById('task-due-date');
+      const holdHint = document.getElementById('hold-hint');
+      const reloadBtn = document.getElementById('reload-btn');
+
+      // Reset stylu karty
+      card.style.transition = 'none';
+      card.style.transform = 'none';
+      card.style.backgroundColor = '#1a1a24';
+      card.style.borderColor = '#2e2e3e';
 
       if (currentIndex >= tasks.length) {
         taskListName.innerText = "";
         taskDueDate.style.display = "none";
-        taskTitle.innerText = "Brak zaległych zadań sprzed dzisiaj! 🎉";
+        holdHint.style.display = "none";
+        taskTitle.innerText = "Wszystkie zaległe zadania ogarnięte! 🎉";
+        reloadBtn.style.display = "inline-block";
         return;
       }
 
+      holdHint.style.display = "block";
+      reloadBtn.style.display = "none";
+
       const currentTask = tasks[currentIndex];
       card.style.display = 'flex';
-      card.style.transform = 'none';
       
       taskListName.innerText = currentTask.listTitle;
       taskDueDate.style.display = "inline-block";
@@ -320,23 +319,75 @@
     }
 
     function initGestures(el) {
-      const mc = new Hammer(el);
-      mc.get('swipe').set({ direction: Hammer.DIRECTION_ALL });
-      
-      mc.on("swipedown", () => updateTask('complete'));
-      mc.on("swiperight", () => updateTask('today'));
-      mc.on("swipeleft", () => updateTask('tomorrow'));
-      mc.on("swipeup", () => updateTask('monday'));
-      mc.on("press", () => document.getElementById('modal').style.display = 'flex');
+      if (hammerManager) hammerManager.destroy();
+
+      hammerManager = new Hammer(el);
+      hammerManager.get('pan').set({ direction: Hammer.DIRECTION_ALL });
+
+      const THRESHOLD = 80; // Wymagany dystans przesunięcia
+
+      hammerManager.on("panmove", (ev) => {
+        const x = ev.deltaX;
+        const y = ev.deltaY;
+        const rotate = x * 0.05; // Lekka rotacja karty przy ruchu
+
+        el.style.transition = 'none';
+        el.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rotate}deg)`;
+
+        // Kolorowanie w czasie rzeczywistym
+        if (Math.abs(y) > Math.abs(x)) {
+          if (y > 30) {
+            // Dół - Zielony (Zrobione)
+            el.style.backgroundColor = 'rgba(46, 213, 115, 0.2)';
+            el.style.borderColor = '#2ed573';
+          } else if (y < -30) {
+            // Góra - Fioletowy (Poniedziałek)
+            el.style.backgroundColor = 'rgba(165, 94, 234, 0.2)';
+            el.style.borderColor = '#a55eea';
+          }
+        } else {
+          if (x > 30) {
+            // Prawo - Niebieski (Dziś)
+            el.style.backgroundColor = 'rgba(0, 122, 255, 0.2)';
+            el.style.borderColor = '#007bff';
+          } else if (x < -30) {
+            // Lewo - Pomarańczowy (Jutro)
+            el.style.backgroundColor = 'rgba(255, 159, 67, 0.2)';
+            el.style.borderColor = '#ff9f43';
+          }
+        }
+      });
+
+      hammerManager.on("panend", (ev) => {
+        const x = ev.deltaX;
+        const y = ev.deltaY;
+
+        el.style.transition = 'transform 0.25s ease, background-color 0.25s, border-color 0.25s';
+
+        // Odpowiedź na kierunek po przekroczeniu progu
+        if (Math.abs(y) > Math.abs(x) && Math.abs(y) > THRESHOLD) {
+          if (y > 0) updateTask('complete');
+          else updateTask('monday');
+        } else if (Math.abs(x) > Math.abs(y) && Math.abs(x) > THRESHOLD) {
+          if (x > 0) updateTask('today');
+          else updateTask('tomorrow');
+        } else {
+          // Powrót na środek po niepełnym geście
+          el.style.transform = 'translate3d(0, 0, 0) rotate(0deg)';
+          el.style.backgroundColor = '#1a1a24';
+          el.style.borderColor = '#2e2e3e';
+        }
+      });
+
+      hammerManager.on("press", () => document.getElementById('modal').style.display = 'flex');
     }
 
     async function updateTask(action, customDate = null) {
       const task = tasks[currentIndex];
       const url = `https://tasks.googleapis.com/tasks/v1/lists/${task.listId}/tasks/${task.id}`;
-      let method = 'PATCH', body = {};
+      let body = {};
 
       if (action === 'complete') {
-        // Oznaczenie jako zrobione
         body = JSON.stringify({ status: 'completed' });
       } else {
         let date = new Date();
@@ -347,7 +398,7 @@
       }
 
       await fetch(url, {
-        method, 
+        method: 'PATCH', 
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body
       });
