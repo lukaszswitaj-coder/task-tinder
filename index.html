@@ -2,92 +2,105 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Task Swipe</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
   <style>
+    * { box-sizing: border-box; }
     body { 
-      font-family: sans-serif; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
       display: flex; 
       justify-content: space-between; 
       align-items: center; 
       height: 100vh; 
       margin: 0; 
-      background: #121212; 
+      background: #0f0f12; 
       color: #fff; 
       flex-direction: column;
       overflow: hidden;
       touch-action: none;
-      padding: 20px 10px;
-      box-sizing: border-box;
+      padding: 16px 12px;
     }
     
-    /* Paski z instrukcjami */
     .hint-bar {
       font-size: 0.85rem;
-      color: #aaa;
+      color: #00d2ff;
       text-align: center;
-      background: rgba(255, 255, 255, 0.05);
-      padding: 10px 16px;
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      width: 90%;
-      max-width: 350px;
-      box-sizing: border-box;
+      background: rgba(0, 210, 255, 0.08);
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 210, 255, 0.2);
+      width: 100%;
+      max-width: 360px;
     }
     
     .horizontal-hints {
       display: flex;
       justify-content: space-between;
       width: 100%;
-      max-width: 380px;
-      font-size: 0.85rem;
+      max-width: 360px;
+      font-size: 0.8rem;
       color: #aaa;
-      padding: 0 10px;
-      box-sizing: border-box;
+      padding: 0 4px;
     }
 
     #card-container {
       position: relative;
       width: 100%;
+      max-width: 360px;
       display: flex;
       justify-content: center;
       align-items: center;
       flex-grow: 1;
+      margin: 12px 0;
     }
 
     #card { 
-      width: 85%; 
-      max-width: 350px; 
-      height: 280px; 
-      background: #1e1e1e; 
-      border-radius: 16px; 
+      width: 100%; 
+      max-height: 70vh; 
+      background: #1a1a24; 
+      border-radius: 20px; 
       display: flex; 
       flex-direction: column;
       align-items: center; 
       justify-content: center; 
-      padding: 24px; 
+      padding: 24px 20px; 
       text-align: center; 
-      box-shadow: 0 10px 25px rgba(0,0,0,0.6); 
+      box-shadow: 0 12px 30px rgba(0,0,0,0.7); 
       user-select: none; 
-      position: absolute; 
-      box-sizing: border-box;
-      border: 1px solid #2a2a2a;
+      position: relative; 
+      border: 1px solid #2e2e3e;
+      overflow-y: auto;
     }
 
     #task-title {
-      font-size: 1.2rem;
-      line-height: 1.4;
-      font-weight: bold;
+      font-size: 1.25rem;
+      line-height: 1.5;
+      font-weight: 600;
+      word-break: break-word;
+      white-space: pre-wrap;
+      color: #ffffff;
+      margin-bottom: 12px;
     }
 
     #task-list-name {
-      font-size: 0.8rem;
-      color: #007bff;
-      margin-bottom: 12px;
+      font-size: 0.75rem;
+      color: #ff9f43;
+      margin-bottom: 8px;
       text-transform: uppercase;
       letter-spacing: 1px;
+      font-weight: bold;
+    }
+
+    #task-due-date {
+      font-size: 0.8rem;
+      color: #ff5252;
+      background: rgba(255, 82, 82, 0.1);
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 14px;
+      display: inline-block;
     }
 
     #modal { 
@@ -106,26 +119,30 @@
     .modal-content { 
       background: #222; 
       padding: 24px; 
-      border-radius: 12px; 
+      border-radius: 16px; 
       text-align: center; 
       box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+      width: 85%;
+      max-width: 320px;
     }
 
     input[type="date"] {
-      padding: 10px;
+      padding: 12px;
       font-size: 1rem;
-      border-radius: 6px;
+      border-radius: 8px;
       border: 1px solid #444;
       background: #333;
       color: white;
+      width: 100%;
+      margin-top: 10px;
     }
 
     button { 
       padding: 12px 24px; 
       font-size: 1rem; 
-      margin-top: 10px; 
+      margin-top: 12px; 
       cursor: pointer; 
-      border-radius: 8px;
+      border-radius: 10px;
       border: none;
       background: #007bff;
       color: white;
@@ -138,7 +155,6 @@
       font-size: 0.75rem;
       text-decoration: underline;
       border: none;
-      margin-top: 4px;
     }
   </style>
 </head>
@@ -146,29 +162,30 @@
 
   <!-- Górna instrukcja -->
   <div class="hint-bar">
-    ⬆️ <b>GÓRA:</b> Przesuń na poniedziałek
+    ⬆️ <b>SWIPE UP:</b> Kolejny poniedziałek
   </div>
 
-  <!-- Główny obszar z kartą i wskaźnikami bocznymi -->
+  <!-- Główny kontener -->
   <div id="card-container">
     <button id="login-btn" onclick="handleAuth()">Zaloguj z Google</button>
     
     <div id="card" style="display:none;">
       <div id="task-list-name"></div>
+      <div id="task-due-date"></div>
       <div id="task-title">Ładowanie zadań...</div>
-      <div style="font-size: 0.7rem; color: #555; margin-top: 15px;">👆 Przytrzymaj = Kalendarz</div>
+      <div style="font-size: 0.75rem; color: #777; margin-top: 10px;">👆 Przytrzymaj = Wybór daty w kalendarzu</div>
     </div>
   </div>
 
   <!-- Wskaźniki Lewo / Prawo -->
   <div class="horizontal-hints">
-    <span>⬅️ <b>LEWO:</b> Na jutro</span>
-    <span><b>PRAWO:</b> Na dziś ➡️</span>
+    <span>⬅️ <b>LEWO:</b> Przesuń na jutro</span>
+    <span><b>PRAWO:</b> Przesuń na dziś ➡️</span>
   </div>
 
   <!-- Dolna instrukcja -->
-  <div class="hint-bar" style="margin-top: 10px;">
-    ⬇️ <b>DÓŁ:</b> Usunięcie zadania
+  <div class="hint-bar" style="color: #2ed573; background: rgba(46, 213, 115, 0.08); border-color: rgba(46, 213, 115, 0.2);">
+    ⬇️ <b>SWIPE DOWN:</b> Oznacz jako zrobione (odhacz)
   </div>
 
   <button id="switch-account" style="display:none;" onclick="handleAuth()">Zmień konto Google</button>
@@ -176,9 +193,9 @@
   <!-- Modal kalendarza -->
   <div id="modal">
     <div class="modal-content">
-      <h3 style="margin-top:0;">Wybierz nową datę</h3>
+      <h3 style="margin-top:0;">Wybierz datę przełożenia</h3>
       <input type="date" id="custom-date">
-      <br><br>
+      <br>
       <button onclick="submitCustomDate()">Zapisz</button>
     </div>
   </div>
@@ -229,9 +246,11 @@
       const card = document.getElementById('card');
       const taskTitle = document.getElementById('task-title');
       const taskListName = document.getElementById('task-list-name');
+      const taskDueDate = document.getElementById('task-due-date');
 
-      taskTitle.innerText = "Ładowanie zadań...";
+      taskTitle.innerText = "Ładowanie zaległych zadań...";
       taskListName.innerText = "";
+      taskDueDate.innerText = "";
       card.style.display = 'flex';
 
       try {
@@ -241,6 +260,7 @@
         const listsData = await listsRes.json();
         const taskLists = listsData.items || [];
 
+        // Pobieramy dzisiejszą datę w formacie YYYY-MM-DD
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
 
@@ -251,11 +271,18 @@
 
           const filtered = items.filter(t => {
             if (!t.title || t.title.trim() === '') return false;
-            if (!t.due) return true;
+            if (!t.due) return false; // Odrzucamy zadania bez daty
 
             const taskDateStr = t.due.split('T')[0];
-            return taskDateStr <= todayStr;
-          }).map(t => ({ ...t, listId: list.id, listTitle: list.title }));
+            
+            // STYL STRICTLY OLD: tylko zadania z datą MNIEJSZĄ niż dzisiaj (wczoraj i wcześniej)
+            return taskDateStr < todayStr;
+          }).map(t => ({ 
+            ...t, 
+            listId: list.id, 
+            listTitle: list.title,
+            formattedDueDate: t.due.split('T')[0]
+          }));
 
           tasks = tasks.concat(filtered);
         }
@@ -271,10 +298,12 @@
       const card = document.getElementById('card');
       const taskTitle = document.getElementById('task-title');
       const taskListName = document.getElementById('task-list-name');
+      const taskDueDate = document.getElementById('task-due-date');
 
       if (currentIndex >= tasks.length) {
         taskListName.innerText = "";
-        taskTitle.innerText = "Brak zaległych zadań! 🎉";
+        taskDueDate.style.display = "none";
+        taskTitle.innerText = "Brak zaległych zadań sprzed dzisiaj! 🎉";
         return;
       }
 
@@ -283,6 +312,8 @@
       card.style.transform = 'none';
       
       taskListName.innerText = currentTask.listTitle;
+      taskDueDate.style.display = "inline-block";
+      taskDueDate.innerText = `⏰ Zaległe od: ${currentTask.formattedDueDate}`;
       taskTitle.innerText = currentTask.title;
 
       initGestures(card);
@@ -292,7 +323,7 @@
       const mc = new Hammer(el);
       mc.get('swipe').set({ direction: Hammer.DIRECTION_ALL });
       
-      mc.on("swipedown", () => updateTask('delete'));
+      mc.on("swipedown", () => updateTask('complete'));
       mc.on("swiperight", () => updateTask('today'));
       mc.on("swipeleft", () => updateTask('tomorrow'));
       mc.on("swipeup", () => updateTask('monday'));
@@ -304,8 +335,9 @@
       const url = `https://tasks.googleapis.com/tasks/v1/lists/${task.listId}/tasks/${task.id}`;
       let method = 'PATCH', body = {};
 
-      if (action === 'delete') {
-        method = 'DELETE';
+      if (action === 'complete') {
+        // Oznaczenie jako zrobione
+        body = JSON.stringify({ status: 'completed' });
       } else {
         let date = new Date();
         if (action === 'tomorrow') date.setDate(date.getDate() + 1);
@@ -317,7 +349,7 @@
       await fetch(url, {
         method, 
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: method !== 'DELETE' ? body : null
+        body
       });
 
       currentIndex++;
