@@ -236,44 +236,48 @@
       const taskTitle = document.getElementById('task-title');
       const taskListName = document.getElementById('task-list-name');
       const taskDueDate = document.getElementById('task-due-date');
-
+    
       taskTitle.innerText = "Ładowanie zaległych zadań...";
       taskListName.innerText = "";
       taskDueDate.innerText = "";
       card.style.display = 'flex';
-
+    
       try {
         const listsRes = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', {
           headers: { Authorization: `Bearer ${accessToken}` }
         });
         const listsData = await listsRes.json();
         const taskLists = listsData.items || [];
-
-        // Pobieramy początek dzisiejszego dnia w UTC dla filtra Google API dueMax
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        const dueMaxStr = now.toISOString();
-
+    
+        // Pobieramy wczorajszą datę w lokalnej strefie czasowej (Format: YYYY-MM-DD)
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toLocaleDateString('en-CA'); // Zwraca lokalną datę w formacie YYYY-MM-DD
+    
+        // Ustawiamy granicę czyszcząc opóźnienia stref czasowych (koniec wczorajszego dnia UTC)
+        const dueMaxStr = `${yesterdayStr}T23:59:59.999Z`;
+    
         tasks = [];
-
+    
         for (const list of taskLists) {
-          // Filtr dueMax wprost w zapytaniu HTTP do API Google
           const res = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&dueMax=${dueMaxStr}&maxResults=100`, {
             headers: { Authorization: `Bearer ${accessToken}` }
           });
           const data = await res.json();
           const items = data.items || [];
-
-          const mapped = items.filter(t => t.title && t.title.trim() !== '' && t.due).map(t => ({ 
-            ...t, 
-            listId: list.id, 
-            listTitle: list.title,
-            formattedDueDate: t.due.split('T')[0]
-          }));
-
+    
+          const mapped = items
+            .filter(t => t.title && t.title.trim() !== '' && t.due)
+            .map(t => ({ 
+              ...t, 
+              listId: list.id, 
+              listTitle: list.title,
+              formattedDueDate: t.due.split('T')[0]
+            }));
+    
           tasks = tasks.concat(mapped);
         }
-
+    
         showNextTask();
       } catch (err) {
         console.error(err);
