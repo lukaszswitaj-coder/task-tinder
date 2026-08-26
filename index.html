@@ -191,7 +191,7 @@
     ⬇️ <b>SWIPE DOWN:</b> Oznacz jako zrobione
   </div>
 
-  <button id="switch-account" style="display:none;" onclick="handleAuth()">Zmień konto Google</button>
+  <button id="switch-account" style="display:none;" onclick="logout()">Zmień konto / Wyloguj</button>
 
   <!-- Modal kalendarza -->
   <div id="modal">
@@ -204,9 +204,19 @@
   </div>
 
   <script>
-    const CLIENT_ID = '21542541771-b5kbbkkjqivcbrbs7s5dcpittgu1q0fe.apps.googleusercontent.com';
+    const CLIENT_ID = 'TWOJ_CLIENT_ID.apps.googleusercontent.com';
     const SCOPES = 'https://www.googleapis.com/auth/tasks';
-    let accessToken = null, tasks = [], currentIndex = 0, tokenClient, hammerManager = null;
+    let accessToken = localStorage.getItem('google_tasks_token') || null;
+    let tasks = [], currentIndex = 0, tokenClient, hammerManager = null;
+
+    // Po załadowaniu strony sprawdzamy, czy token jest już w pamięci
+    window.addEventListener('DOMContentLoaded', () => {
+      if (accessToken) {
+        document.getElementById('login-btn').style.display = 'none';
+        document.getElementById('switch-account').style.display = 'block';
+        loadTasks();
+      }
+    });
 
     function handleAuth() {
       tokenClient = google.accounts.oauth2.initTokenClient({
@@ -216,12 +226,22 @@
         callback: (res) => { 
           if (res.error) return;
           accessToken = res.access_token; 
+          // Zapisujemy token w localStorage
+          localStorage.setItem('google_tasks_token', accessToken);
           document.getElementById('login-btn').style.display = 'none'; 
           document.getElementById('switch-account').style.display = 'block';
           reloadTasks();
         }
       });
       tokenClient.requestAccessToken();
+    }
+
+    function logout() {
+      localStorage.removeItem('google_tasks_token');
+      accessToken = null;
+      document.getElementById('card').style.display = 'none';
+      document.getElementById('login-btn').style.display = 'block';
+      document.getElementById('switch-account').style.display = 'none';
     }
 
     function reloadTasks() {
@@ -236,48 +256,61 @@
       const taskTitle = document.getElementById('task-title');
       const taskListName = document.getElementById('task-list-name');
       const taskDueDate = document.getElementById('task-due-date');
-    
+
       taskTitle.innerText = "Ładowanie zaległych zadań...";
       taskListName.innerText = "";
       taskDueDate.innerText = "";
       card.style.display = 'flex';
-    
+
       try {
         const listsRes = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', {
           headers: { Authorization: `Bearer ${accessToken}` }
         });
+        
+        // Jeśli token wygasł (błąd 401), wyczyszczamy sesję i prosimy o ponowne zalogowanie
+        if (listsRes.status === 401) {
+          logout();
+          return;
+        }
+
         const listsData = await listsRes.json();
         const taskLists = listsData.items || [];
-    
-        // Pobieramy wczorajszą datę w lokalnej strefie czasowej (Format: YYYY-MM-DD)
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toLocaleDateString('en-CA'); // Zwraca lokalną datę w formacie YYYY-MM-DD
-    
-        // Ustawiamy granicę czyszcząc opóźnienia stref czasowych (koniec wczorajszego dnia UTC)
-        const dueMaxStr = `${yesterdayStr}T23:59:59.999Z`;
-    
+
+        // Pobieramy dzisiejszą datę lokalną YYYY-MM-DD
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+
+        // Koniec dzisiejszego dnia dla bufora Google API
+        const endOfTodayISO = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
+
         tasks = [];
-    
+
         for (const list of taskLists) {
-          const res = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&dueMax=${dueMaxStr}&maxResults=100`, {
+          const res = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&dueMax=${endOfTodayISO}&maxResults=100`, {
             headers: { Authorization: `Bearer ${accessToken}` }
           });
           const data = await res.json();
           const items = data.items || [];
-    
-          const mapped = items
-            .filter(t => t.title && t.title.trim() !== '' && t.due)
-            .map(t => ({ 
-              ...t, 
-              listId: list.id, 
-              listTitle: list.title,
-              formattedDueDate: t.due.split('T')[0]
-            }));
-    
+
+          const mapped = items.filter(t => {
+            if (!t.title || t.title.trim() === '' || !t.due) return false;
+            
+            const taskDateStr = t.due.split('T')[0];
+            // ŚCIŚLE POPRZEDNIE DNI: data zadania musi być mniejsza od dzisiejszej daty lokalnej
+            return taskDateStr < todayStr;
+          }).map(t => ({ 
+            ...t, 
+            listId: list.id, 
+            listTitle: list.title,
+            formattedDueDate: t.due.split('T')[0]
+          }));
+
           tasks = tasks.concat(mapped);
         }
-    
+
         showNextTask();
       } catch (err) {
         console.error(err);
@@ -293,7 +326,6 @@
       const holdHint = document.getElementById('hold-hint');
       const reloadBtn = document.getElementById('reload-btn');
 
-      // Reset stylu karty
       card.style.transition = 'none';
       card.style.transform = 'none';
       card.style.backgroundColor = '#1a1a24';
@@ -328,34 +360,29 @@
       hammerManager = new Hammer(el);
       hammerManager.get('pan').set({ direction: Hammer.DIRECTION_ALL });
 
-      const THRESHOLD = 80; // Wymagany dystans przesunięcia
+      const THRESHOLD = 80;
 
       hammerManager.on("panmove", (ev) => {
         const x = ev.deltaX;
         const y = ev.deltaY;
-        const rotate = x * 0.05; // Lekka rotacja karty przy ruchu
+        const rotate = x * 0.05;
 
         el.style.transition = 'none';
         el.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rotate}deg)`;
 
-        // Kolorowanie w czasie rzeczywistym
         if (Math.abs(y) > Math.abs(x)) {
           if (y > 30) {
-            // Dół - Zielony (Zrobione)
             el.style.backgroundColor = 'rgba(46, 213, 115, 0.2)';
             el.style.borderColor = '#2ed573';
           } else if (y < -30) {
-            // Góra - Fioletowy (Poniedziałek)
             el.style.backgroundColor = 'rgba(165, 94, 234, 0.2)';
             el.style.borderColor = '#a55eea';
           }
         } else {
           if (x > 30) {
-            // Prawo - Niebieski (Dziś)
             el.style.backgroundColor = 'rgba(0, 122, 255, 0.2)';
             el.style.borderColor = '#007bff';
           } else if (x < -30) {
-            // Lewo - Pomarańczowy (Jutro)
             el.style.backgroundColor = 'rgba(255, 159, 67, 0.2)';
             el.style.borderColor = '#ff9f43';
           }
@@ -368,7 +395,6 @@
 
         el.style.transition = 'transform 0.25s ease, background-color 0.25s, border-color 0.25s';
 
-        // Odpowiedź na kierunek po przekroczeniu progu
         if (Math.abs(y) > Math.abs(x) && Math.abs(y) > THRESHOLD) {
           if (y > 0) updateTask('complete');
           else updateTask('monday');
@@ -376,7 +402,6 @@
           if (x > 0) updateTask('today');
           else updateTask('tomorrow');
         } else {
-          // Powrót na środek po niepełnym geście
           el.style.transform = 'translate3d(0, 0, 0) rotate(0deg)';
           el.style.backgroundColor = '#1a1a24';
           el.style.borderColor = '#2e2e3e';
