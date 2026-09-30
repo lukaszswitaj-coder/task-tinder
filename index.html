@@ -54,30 +54,6 @@
       color: #fff;
     }
 
-    /* Pasek wyboru zakreślania dat (Tryb Zakres) */
-    .range-picker {
-      display: flex;
-      gap: 8px;
-      width: 100%;
-      max-width: 360px;
-      margin-top: 8px;
-      align-items: center;
-      justify-content: space-between;
-      background: #1a1a24;
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-size: 0.8rem;
-    }
-
-    .range-picker input[type="date"] {
-      background: #2b2b3b;
-      border: 1px solid #444;
-      color: #fff;
-      padding: 4px 6px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-    }
-
     /* Paski z instrukcjami */
     .hint-bar {
       font-size: 0.8rem;
@@ -115,14 +91,14 @@
 
     #card { 
       width: 100%; 
-      max-height: 65vh; 
+      max-height: 55vh; 
       background: #1a1a24; 
       border-radius: 20px; 
       display: flex; 
       flex-direction: column;
       align-items: center; 
       justify-content: center; 
-      padding: 24px 20px; 
+      padding: 20px 16px; 
       text-align: center; 
       box-shadow: 0 12px 30px rgba(0,0,0,0.7); 
       user-select: none; 
@@ -134,17 +110,17 @@
     }
 
     #task-title {
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       line-height: 1.4;
       font-weight: 600;
       word-break: break-word;
       white-space: pre-wrap;
       color: #ffffff;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     #task-list-name {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: #ff9f43;
       margin-bottom: 6px;
       text-transform: uppercase;
@@ -153,13 +129,64 @@
     }
 
     #task-due-date {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: #ff5252;
       background: rgba(255, 82, 82, 0.1);
-      padding: 4px 10px;
+      padding: 3px 8px;
       border-radius: 6px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       display: inline-block;
+    }
+
+    /* Siatka planowania tygodniowego */
+    #week-grid-container {
+      display: none;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      width: 100%;
+      max-width: 360px;
+      margin-top: 6px;
+    }
+
+    .week-day-btn {
+      background: #1e1e2d;
+      border: 1px solid #33334d;
+      border-radius: 10px;
+      padding: 8px 4px;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.7rem;
+      transition: all 0.15s ease;
+    }
+
+    .week-day-btn:active {
+      background: #007bff;
+      border-color: #007bff;
+      transform: scale(0.96);
+    }
+
+    .week-day-btn .day-title {
+      font-weight: bold;
+      margin-bottom: 2px;
+    }
+
+    .week-day-btn .day-date {
+      font-size: 0.65rem;
+      color: #aaa;
+    }
+
+    .week-day-btn .day-badge {
+      margin-top: 4px;
+      background: rgba(0, 123, 255, 0.25);
+      color: #70a1ff;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 0.65rem;
     }
 
     /* Widok Wykonania Szybkich Zadań (Checklist) */
@@ -267,14 +294,7 @@
   <div class="nav-modes">
     <button class="mode-btn active" id="btn-mode-overdue" onclick="switchMode('overdue')">Zaległe</button>
     <button class="mode-btn" id="btn-mode-quick" onclick="switchMode('quick')">⚡ Szybkie</button>
-    <button class="mode-btn" id="btn-mode-range" onclick="switchMode('range')">📅 Zakres Dat</button>
-  </div>
-
-  <!-- Zakres Dat (widoczny tylko w trybie 'range') -->
-  <div id="range-picker" class="range-picker" style="display:none;">
-    <span>Od: <input type="date" id="range-start"></span>
-    <span>Do: <input type="date" id="range-end"></span>
-    <button class="action-btn" style="margin:0; padding:6px 12px; font-size:0.75rem;" onclick="reloadTasks()">Filtruj</button>
+    <button class="mode-btn" id="btn-mode-week" onclick="switchMode('week')">📅 Tydzień</button>
   </div>
 
   <!-- Górny pasek wskazówek -->
@@ -290,7 +310,7 @@
       <div id="task-list-name"></div>
       <div id="task-due-date"></div>
       <div id="task-title">Ładowanie zadań...</div>
-      <div id="hold-hint" style="font-size: 0.75rem; color: #777; margin-top: 8px;">👆 Przytrzymaj = Wybór daty w kalendarzu</div>
+      <div id="hold-hint" style="font-size: 0.7rem; color: #777; margin-top: 6px;">👆 Przytrzymaj = Kalendarz (Inna data)</div>
       
       <button id="quick-done-btn" class="action-btn" style="display:none; background:#2ed573;" onclick="showQuickTasksList()">
         Pokaż wybrane szybkie (<span id="quick-count">0</span>/5) ➔
@@ -299,6 +319,9 @@
       <button id="reload-btn" class="action-btn" style="display:none;" onclick="reloadTasks()">Odśwież listę 🔄</button>
     </div>
   </div>
+
+  <!-- Siatka Planowania Tygodniowego -->
+  <div id="week-grid-container"></div>
 
   <!-- Lista kontrolna Szybkich Zadań (Faza 2 trybu Szybkie) -->
   <div id="quick-list-view">
@@ -340,16 +363,9 @@
     let tasks = [], currentIndex = 0, tokenClient, hammerManager = null;
     
     // Stan aplikacji
-    let currentMode = 'overdue'; // 'overdue' | 'quick' | 'range'
-    let quickTasksList = []; // Przechowuje wyselekcjonowane szybkie zadania
-
-    // Inicjalizacja domyślnych dat dla pola zakreślania (jutro -> za 7 dni)
-    const todayObj = new Date();
-    const tomObj = new Date(todayObj); tomObj.setDate(tomObj.getDate() + 1);
-    const nextWeekObj = new Date(todayObj); nextWeekObj.setDate(nextWeekObj.getDate() + 7);
-
-    document.getElementById('range-start').value = tomObj.toISOString().split('T')[0];
-    document.getElementById('range-end').value = nextWeekObj.toISOString().split('T')[0];
+    let currentMode = 'overdue'; // 'overdue' | 'quick' | 'week'
+    let quickTasksList = []; 
+    let dayTaskCounts = {}; // Licznik zadań na konkretne dni YYYY-MM-DD
 
     window.addEventListener('DOMContentLoaded', () => {
       if (accessToken) {
@@ -381,24 +397,75 @@
       accessToken = null;
       document.getElementById('card').style.display = 'none';
       document.getElementById('quick-list-view').style.display = 'none';
+      document.getElementById('week-grid-container').style.display = 'none';
       document.getElementById('login-btn').style.display = 'block';
       document.getElementById('switch-account').style.display = 'none';
     }
 
-    // Przełączanie trybów pracy
+    // Wyznaczanie list dat dla bieżącego tygodnia + kolejnego poniedziałku
+    function getWeekDaysList() {
+      const dayNames = ['Niedz', 'Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob'];
+      const now = new Date();
+      const currentDay = now.getDay(); 
+      
+      const diffToMon = currentDay === 0 ? -6 : 1 - currentDay;
+      const mon = new Date(now);
+      mon.setDate(now.getDate() + diffToMon);
+
+      const days = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(mon);
+        d.setDate(mon.getDate() + i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const dateStr = `${yyyy}-${mm}-${dd}`;
+        
+        days.push({
+          name: dayNames[d.getDay()],
+          dateStr: dateStr,
+          displayDate: `${dd}.${mm}`
+        });
+      }
+
+      // 8. przycisk: Kolejny Poniedziałek
+      const nextMon = new Date(mon);
+      nextMon.setDate(mon.getDate() + 7);
+      const yyyyN = nextMon.getFullYear();
+      const mmN = String(nextMon.getMonth() + 1).padStart(2, '0');
+      const ddN = String(nextMon.getDate()).padStart(2, '0');
+      
+      days.push({
+        name: 'Kol. Pon',
+        dateStr: `${yyyyN}-${mmN}-${ddN}`,
+        displayDate: `${ddN}.${mmN}`
+      });
+
+      return days;
+    }
+
     function switchMode(newMode) {
       currentMode = newMode;
       
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(`btn-mode-${newMode}`).classList.add('active');
 
-      document.getElementById('range-picker').style.display = (newMode === 'range') ? 'flex' : 'none';
       document.getElementById('quick-list-view').style.display = 'none';
       document.getElementById('card-container').style.display = 'flex';
-      document.getElementById('hint-horizontal').style.display = 'flex';
-      document.getElementById('hint-bottom').style.display = 'block';
+      
+      if (newMode === 'week') {
+        document.getElementById('week-grid-container').style.display = 'grid';
+        document.getElementById('hint-top').style.display = 'none';
+        document.getElementById('hint-horizontal').style.display = 'none';
+        document.getElementById('hint-bottom').style.display = 'none';
+      } else {
+        document.getElementById('week-grid-container').style.display = 'none';
+        document.getElementById('hint-top').style.display = 'block';
+        document.getElementById('hint-horizontal').style.display = 'flex';
+        document.getElementById('hint-bottom').style.display = 'block';
+        updateHints();
+      }
 
-      updateHints();
       reloadTasks();
     }
 
@@ -410,17 +477,36 @@
 
       if (currentMode === 'quick') {
         top.innerHTML = "⬆️ <b>SWIPE UP:</b> Przesuń na poniedziałek";
-        left.innerHTML = "⬅️ <b>LEWO:</b> Długie / Pomiń";
+        left.innerHTML = "⬅️️ <b>LEWO:</b> Długie / Pomiń";
         right.innerHTML = "<b>PRAWO:</b> ⚡ Szybkie (dodaj)";
         bottom.innerHTML = "⬇️ <b>SWIPE DOWN:</b> Zrobione teraz";
         bottom.style.color = "#2ed573";
       } else {
-        top.innerHTML = "⬆️️ <b>SWIPE UP:</b> Kolejny poniedziałek";
+        top.innerHTML = "⬆️ <b>SWIPE UP:</b> Kolejny poniedziałek";
         left.innerHTML = "⬅️ <b>LEWO:</b> Na jutro";
         right.innerHTML = "<b>PRAWO:</b> Na dziś ➡️";
         bottom.innerHTML = "⬇️ <b>SWIPE DOWN:</b> Oznacz jako zrobione";
         bottom.style.color = "#2ed573";
       }
+    }
+
+    function renderWeekGrid() {
+      const container = document.getElementById('week-grid-container');
+      container.innerHTML = '';
+
+      const days = getWeekDaysList();
+      days.forEach(d => {
+        const count = dayTaskCounts[d.dateStr] || 0;
+        const btn = document.createElement('div');
+        btn.className = 'week-day-btn';
+        btn.onclick = () => assignToWeekDay(d.dateStr);
+        btn.innerHTML = `
+          <div class="day-title">${d.name}</div>
+          <div class="day-date">${d.displayDate}</div>
+          <div class="day-badge">${count}</div>
+        `;
+        container.appendChild(btn);
+      });
     }
 
     function reloadTasks() {
@@ -454,43 +540,32 @@
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
 
-        // Wyznaczenie filtrowania w zależności od trybu
-        let dueMaxISO = '';
-        if (currentMode === 'overdue') {
-          dueMaxISO = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
-        } else if (currentMode === 'quick') {
-          dueMaxISO = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
-        } else if (currentMode === 'range') {
-          const endDateVal = document.getElementById('range-end').value;
-          if (endDateVal) {
-            dueMaxISO = new Date(`${endDateVal}T23:59:59`).toISOString();
-          }
-        }
-
+        dayTaskCounts = {};
         tasks = [];
 
         for (const list of taskLists) {
-          let url = `https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&maxResults=100`;
-          if (dueMaxISO) url += `&dueMax=${dueMaxISO}`;
-
-          const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+          const res = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&maxResults=100`, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
           const data = await res.json();
           const items = data.items || [];
 
+          items.forEach(t => {
+            if (t.due && !t.completed) {
+              const dStr = t.due.split('T')[0];
+              dayTaskCounts[dStr] = (dayTaskCounts[dStr] || 0) + 1;
+            }
+          });
+
           const mapped = items.filter(t => {
             if (!t.title || t.title.trim() === '') return false;
-            if (!t.due) return currentMode === 'quick'; // W trybie 'szybkie' bierzemy też zadania bez daty
 
-            const taskDateStr = t.due.split('T')[0];
-            
             if (currentMode === 'overdue') {
-              return taskDateStr < todayStr; // Strict zaległe sprzed dzisiaj
+              return t.due && t.due.split('T')[0] < todayStr;
             } else if (currentMode === 'quick') {
-              return taskDateStr <= todayStr; // Zaległe + z dzisiaj
-            } else if (currentMode === 'range') {
-              const startVal = document.getElementById('range-start').value;
-              const endVal = document.getElementById('range-end').value;
-              return taskDateStr >= startVal && taskDateStr <= endVal;
+              return !t.due || t.due.split('T')[0] <= todayStr;
+            } else if (currentMode === 'week') {
+              return true; // W trybie tygodnia przeglądamy wszystkie nieukończone zadania
             }
             return true;
           }).map(t => ({ 
@@ -503,6 +578,7 @@
           tasks = tasks.concat(mapped);
         }
 
+        if (currentMode === 'week') renderWeekGrid();
         showNextTask();
       } catch (err) {
         console.error(err);
@@ -524,7 +600,6 @@
       card.style.backgroundColor = '#1a1a24';
       card.style.borderColor = '#2e2e3e';
 
-      // Licznik szybkich zadań
       document.getElementById('quick-count').innerText = quickTasksList.length;
       if (currentMode === 'quick' && quickTasksList.length > 0) {
         quickDoneBtn.style.display = 'inline-block';
@@ -577,25 +652,24 @@
         el.style.transition = 'none';
         el.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rotate}deg)`;
 
-        // Kolorowanie feedbacku pod palcem w zależności od trybu
         if (Math.abs(y) > Math.abs(x)) {
           if (y > 30) {
-            el.style.backgroundColor = 'rgba(46, 213, 115, 0.2)'; el.style.borderColor = '#2ed573'; // Dół (Zrobione)
+            el.style.backgroundColor = 'rgba(46, 213, 115, 0.2)'; el.style.borderColor = '#2ed573';
           } else if (y < -30) {
-            el.style.backgroundColor = 'rgba(165, 94, 234, 0.2)'; el.style.borderColor = '#a55eea'; // Góra (Poniedziałek)
+            el.style.backgroundColor = 'rgba(165, 94, 234, 0.2)'; el.style.borderColor = '#a55eea';
           }
         } else {
           if (x > 30) {
             if (currentMode === 'quick') {
-              el.style.backgroundColor = 'rgba(255, 205, 86, 0.25)'; el.style.borderColor = '#ffcd56'; // Prawo w 'quick' (Dodaj szybkie)
+              el.style.backgroundColor = 'rgba(255, 205, 86, 0.25)'; el.style.borderColor = '#ffcd56';
             } else {
-              el.style.backgroundColor = 'rgba(0, 122, 255, 0.2)'; el.style.borderColor = '#007bff'; // Prawo (Na dziś)
+              el.style.backgroundColor = 'rgba(0, 122, 255, 0.2)'; el.style.borderColor = '#007bff';
             }
           } else if (x < -30) {
             if (currentMode === 'quick') {
-              el.style.backgroundColor = 'rgba(120, 120, 120, 0.2)'; el.style.borderColor = '#777'; // Lewo w 'quick' (Pomiń)
+              el.style.backgroundColor = 'rgba(120, 120, 120, 0.2)'; el.style.borderColor = '#777';
             } else {
-              el.style.backgroundColor = 'rgba(255, 159, 67, 0.2)'; el.style.borderColor = '#ff9f43'; // Lewo (Na jutro)
+              el.style.backgroundColor = 'rgba(255, 159, 67, 0.2)'; el.style.borderColor = '#ff9f43';
             }
           }
         }
@@ -628,7 +702,30 @@
       hammerManager.on("press", () => document.getElementById('modal').style.display = 'flex');
     }
 
-    // Dodawanie zadania do wyselekcjonowanej 5 w trybie Szybkie
+    async function assignToWeekDay(targetDateStr) {
+      if (currentIndex >= tasks.length) return;
+      const task = tasks[currentIndex];
+
+      // Aktualizacja liczników na przyciskach w czasie rzeczywistym
+      if (task.formattedDueDate && dayTaskCounts[task.formattedDueDate]) {
+        dayTaskCounts[task.formattedDueDate]--;
+      }
+      dayTaskCounts[targetDateStr] = (dayTaskCounts[targetDateStr] || 0) + 1;
+      renderWeekGrid();
+
+      const url = `https://tasks.googleapis.com/tasks/v1/lists/${task.listId}/tasks/${task.id}`;
+      const targetDateISO = new Date(`${targetDateStr}T00:00:00.000Z`).toISOString();
+
+      await fetch(url, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ due: targetDateISO })
+      });
+
+      currentIndex++;
+      showNextTask();
+    }
+
     function addQuickTask() {
       const task = tasks[currentIndex];
       quickTasksList.push(task);
@@ -646,11 +743,11 @@
       showNextTask();
     }
 
-    // Wyświetlanie listy wyselekcjonowanych 5 szybkich zadań do wykonania
     function showQuickTasksList() {
       document.getElementById('card-container').style.display = 'none';
       document.getElementById('hint-horizontal').style.display = 'none';
       document.getElementById('hint-bottom').style.display = 'none';
+      document.getElementById('week-grid-container').style.display = 'none';
       document.getElementById('quick-list-view').style.display = 'flex';
 
       renderQuickChecklist();
