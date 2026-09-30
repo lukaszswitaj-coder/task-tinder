@@ -20,19 +20,76 @@
       flex-direction: column;
       overflow: hidden;
       touch-action: none;
-      padding: 16px 12px;
+      padding: 12px 10px;
     }
     
+    /* Nawigacja trybów */
+    .nav-modes {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+      max-width: 360px;
+      background: #1a1a24;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid #2e2e3e;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 8px 4px;
+      font-size: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: #aaa;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin: 0;
+    }
+
+    .mode-btn.active {
+      background: #007bff;
+      color: #fff;
+    }
+
+    /* Pasek wyboru zakreślania dat (Tryb Zakres) */
+    .range-picker {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 360px;
+      margin-top: 8px;
+      align-items: center;
+      justify-content: space-between;
+      background: #1a1a24;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+    }
+
+    .range-picker input[type="date"] {
+      background: #2b2b3b;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 4px 6px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+    }
+
+    /* Paski z instrukcjami */
     .hint-bar {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: #a55eea;
       text-align: center;
       background: rgba(165, 94, 234, 0.08);
-      padding: 10px 14px;
-      border-radius: 12px;
+      padding: 8px 12px;
+      border-radius: 10px;
       border: 1px solid rgba(165, 94, 234, 0.2);
       width: 100%;
       max-width: 360px;
+      margin-top: 6px;
     }
     
     .horizontal-hints {
@@ -40,7 +97,7 @@
       justify-content: space-between;
       width: 100%;
       max-width: 360px;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: #aaa;
       padding: 0 4px;
     }
@@ -53,12 +110,12 @@
       justify-content: center;
       align-items: center;
       flex-grow: 1;
-      margin: 12px 0;
+      margin: 8px 0;
     }
 
     #card { 
       width: 100%; 
-      max-height: 70vh; 
+      max-height: 65vh; 
       background: #1a1a24; 
       border-radius: 20px; 
       display: flex; 
@@ -77,19 +134,19 @@
     }
 
     #task-title {
-      font-size: 1.25rem;
-      line-height: 1.5;
+      font-size: 1.2rem;
+      line-height: 1.4;
       font-weight: 600;
       word-break: break-word;
       white-space: pre-wrap;
       color: #ffffff;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     #task-list-name {
       font-size: 0.75rem;
       color: #ff9f43;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       text-transform: uppercase;
       letter-spacing: 1px;
       font-weight: bold;
@@ -101,8 +158,52 @@
       background: rgba(255, 82, 82, 0.1);
       padding: 4px 10px;
       border-radius: 6px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       display: inline-block;
+    }
+
+    /* Widok Wykonania Szybkich Zadań (Checklist) */
+    #quick-list-view {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+      max-width: 360px;
+      flex-grow: 1;
+      background: #1a1a24;
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid #2e2e3e;
+      overflow-y: auto;
+      margin: 8px 0;
+    }
+
+    .quick-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #252533;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      border: 1px solid #333346;
+    }
+
+    .quick-item input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      accent-color: #2ed573;
+      cursor: pointer;
+    }
+
+    .quick-item-title {
+      font-size: 0.95rem;
+      line-height: 1.3;
+      flex-grow: 1;
+    }
+
+    .quick-item-title.done {
+      text-decoration: line-through;
+      color: #666;
     }
 
     #modal { 
@@ -129,7 +230,7 @@
     }
 
     input[type="date"] {
-      padding: 12px;
+      padding: 10px;
       font-size: 1rem;
       border-radius: 8px;
       border: 1px solid #444;
@@ -139,12 +240,12 @@
       margin-top: 10px;
     }
 
-    button { 
-      padding: 12px 24px; 
-      font-size: 1rem; 
-      margin-top: 12px; 
+    button.action-btn { 
+      padding: 10px 18px; 
+      font-size: 0.9rem; 
+      margin-top: 10px; 
       cursor: pointer; 
-      border-radius: 10px;
+      border-radius: 8px;
       border: none;
       background: #007bff;
       color: white;
@@ -162,32 +263,60 @@
 </head>
 <body>
 
-  <!-- Górna instrukcja -->
-  <div class="hint-bar">
+  <!-- Menu Trybów -->
+  <div class="nav-modes">
+    <button class="mode-btn active" id="btn-mode-overdue" onclick="switchMode('overdue')">Zaległe</button>
+    <button class="mode-btn" id="btn-mode-quick" onclick="switchMode('quick')">⚡ Szybkie</button>
+    <button class="mode-btn" id="btn-mode-range" onclick="switchMode('range')">📅 Zakres Dat</button>
+  </div>
+
+  <!-- Zakres Dat (widoczny tylko w trybie 'range') -->
+  <div id="range-picker" class="range-picker" style="display:none;">
+    <span>Od: <input type="date" id="range-start"></span>
+    <span>Do: <input type="date" id="range-end"></span>
+    <button class="action-btn" style="margin:0; padding:6px 12px; font-size:0.75rem;" onclick="reloadTasks()">Filtruj</button>
+  </div>
+
+  <!-- Górny pasek wskazówek -->
+  <div class="hint-bar" id="hint-top">
     ⬆️ <b>SWIPE UP:</b> Kolejny poniedziałek
   </div>
 
-  <!-- Główny kontener -->
+  <!-- Główny kontener fiszek -->
   <div id="card-container">
-    <button id="login-btn" onclick="handleAuth()">Zaloguj z Google</button>
+    <button id="login-btn" class="action-btn" onclick="handleAuth()">Zaloguj z Google</button>
     
     <div id="card" style="display:none;">
       <div id="task-list-name"></div>
       <div id="task-due-date"></div>
-      <div id="task-title">Ładowanie zaległych zadań...</div>
-      <div id="hold-hint" style="font-size: 0.75rem; color: #777; margin-top: 10px;">👆 Przytrzymaj = Wybór daty w kalendarzu</div>
-      <button id="reload-btn" style="display:none;" onclick="reloadTasks()">Odśwież listę 🔄</button>
+      <div id="task-title">Ładowanie zadań...</div>
+      <div id="hold-hint" style="font-size: 0.75rem; color: #777; margin-top: 8px;">👆 Przytrzymaj = Wybór daty w kalendarzu</div>
+      
+      <button id="quick-done-btn" class="action-btn" style="display:none; background:#2ed573;" onclick="showQuickTasksList()">
+        Pokaż wybrane szybkie (<span id="quick-count">0</span>/5) ➔
+      </button>
+
+      <button id="reload-btn" class="action-btn" style="display:none;" onclick="reloadTasks()">Odśwież listę 🔄</button>
     </div>
   </div>
 
-  <!-- Wskaźniki Lewo / Prawo -->
-  <div class="horizontal-hints">
-    <span>⬅️ <b>LEWO:</b> Na jutro</span>
-    <span><b>PRAWO:</b> Na dziś ➡️</span>
+  <!-- Lista kontrolna Szybkich Zadań (Faza 2 trybu Szybkie) -->
+  <div id="quick-list-view">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="margin:0; font-size:1.1rem; color:#2ed573;">⚡ Szybkie Zadania do Zrobienia</h3>
+      <button class="action-btn" style="margin:0; padding:4px 8px; font-size:0.75rem; background:#444;" onclick="backToQuickSwipe()">+ Dodaj więcej</button>
+    </div>
+    <div id="quick-items-container"></div>
   </div>
 
-  <!-- Dolna instrukcja -->
-  <div class="hint-bar" style="color: #2ed573; background: rgba(46, 213, 115, 0.08); border-color: rgba(46, 213, 115, 0.2);">
+  <!-- Wskaźniki Lewo / Prawo -->
+  <div class="horizontal-hints" id="hint-horizontal">
+    <span id="hint-left">⬅️ <b>LEWO:</b> Na jutro</span>
+    <span id="hint-right"><b>PRAWO:</b> Na dziś ➡️</span>
+  </div>
+
+  <!-- Dolny pasek wskazówek -->
+  <div class="hint-bar" id="hint-bottom" style="color: #2ed573; background: rgba(46, 213, 115, 0.08); border-color: rgba(46, 213, 115, 0.2);">
     ⬇️ <b>SWIPE DOWN:</b> Oznacz jako zrobione
   </div>
 
@@ -199,17 +328,29 @@
       <h3 style="margin-top:0;">Wybierz datę przełożenia</h3>
       <input type="date" id="custom-date">
       <br>
-      <button onclick="submitCustomDate()">Zapisz</button>
+      <button class="action-btn" onclick="submitCustomDate()">Zapisz</button>
     </div>
   </div>
 
   <script>
     const CLIENT_ID = '21542541771-b5kbbkkjqivcbrbs7s5dcpittgu1q0fe.apps.googleusercontent.com';
     const SCOPES = 'https://www.googleapis.com/auth/tasks';
+    
     let accessToken = localStorage.getItem('google_tasks_token') || null;
     let tasks = [], currentIndex = 0, tokenClient, hammerManager = null;
+    
+    // Stan aplikacji
+    let currentMode = 'overdue'; // 'overdue' | 'quick' | 'range'
+    let quickTasksList = []; // Przechowuje wyselekcjonowane szybkie zadania
 
-    // Po załadowaniu strony sprawdzamy, czy token jest już w pamięci
+    // Inicjalizacja domyślnych dat dla pola zakreślania (jutro -> za 7 dni)
+    const todayObj = new Date();
+    const tomObj = new Date(todayObj); tomObj.setDate(tomObj.getDate() + 1);
+    const nextWeekObj = new Date(todayObj); nextWeekObj.setDate(nextWeekObj.getDate() + 7);
+
+    document.getElementById('range-start').value = tomObj.toISOString().split('T')[0];
+    document.getElementById('range-end').value = nextWeekObj.toISOString().split('T')[0];
+
     window.addEventListener('DOMContentLoaded', () => {
       if (accessToken) {
         document.getElementById('login-btn').style.display = 'none';
@@ -226,7 +367,6 @@
         callback: (res) => { 
           if (res.error) return;
           accessToken = res.access_token; 
-          // Zapisujemy token w localStorage
           localStorage.setItem('google_tasks_token', accessToken);
           document.getElementById('login-btn').style.display = 'none'; 
           document.getElementById('switch-account').style.display = 'block';
@@ -240,8 +380,47 @@
       localStorage.removeItem('google_tasks_token');
       accessToken = null;
       document.getElementById('card').style.display = 'none';
+      document.getElementById('quick-list-view').style.display = 'none';
       document.getElementById('login-btn').style.display = 'block';
       document.getElementById('switch-account').style.display = 'none';
+    }
+
+    // Przełączanie trybów pracy
+    function switchMode(newMode) {
+      currentMode = newMode;
+      
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`btn-mode-${newMode}`).classList.add('active');
+
+      document.getElementById('range-picker').style.display = (newMode === 'range') ? 'flex' : 'none';
+      document.getElementById('quick-list-view').style.display = 'none';
+      document.getElementById('card-container').style.display = 'flex';
+      document.getElementById('hint-horizontal').style.display = 'flex';
+      document.getElementById('hint-bottom').style.display = 'block';
+
+      updateHints();
+      reloadTasks();
+    }
+
+    function updateHints() {
+      const top = document.getElementById('hint-top');
+      const left = document.getElementById('hint-left');
+      const right = document.getElementById('hint-right');
+      const bottom = document.getElementById('hint-bottom');
+
+      if (currentMode === 'quick') {
+        top.innerHTML = "⬆️ <b>SWIPE UP:</b> Przesuń na poniedziałek";
+        left.innerHTML = "⬅️ <b>LEWO:</b> Długie / Pomiń";
+        right.innerHTML = "<b>PRAWO:</b> ⚡ Szybkie (dodaj)";
+        bottom.innerHTML = "⬇️ <b>SWIPE DOWN:</b> Zrobione teraz";
+        bottom.style.color = "#2ed573";
+      } else {
+        top.innerHTML = "⬆️️ <b>SWIPE UP:</b> Kolejny poniedziałek";
+        left.innerHTML = "⬅️ <b>LEWO:</b> Na jutro";
+        right.innerHTML = "<b>PRAWO:</b> Na dziś ➡️";
+        bottom.innerHTML = "⬇️ <b>SWIPE DOWN:</b> Oznacz jako zrobione";
+        bottom.style.color = "#2ed573";
+      }
     }
 
     function reloadTasks() {
@@ -257,7 +436,7 @@
       const taskListName = document.getElementById('task-list-name');
       const taskDueDate = document.getElementById('task-due-date');
 
-      taskTitle.innerText = "Ładowanie zaległych zadań...";
+      taskTitle.innerText = "Ładowanie zadań...";
       taskListName.innerText = "";
       taskDueDate.innerText = "";
       card.style.display = 'flex';
@@ -267,45 +446,58 @@
           headers: { Authorization: `Bearer ${accessToken}` }
         });
         
-        // Jeśli token wygasł (błąd 401), wyczyszczamy sesję i prosimy o ponowne zalogowanie
-        if (listsRes.status === 401) {
-          logout();
-          return;
-        }
+        if (listsRes.status === 401) { logout(); return; }
 
         const listsData = await listsRes.json();
         const taskLists = listsData.items || [];
 
-        // Pobieramy dzisiejszą datę lokalną YYYY-MM-DD
         const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const todayStr = `${year}-${month}-${day}`;
+        const todayStr = now.toISOString().split('T')[0];
 
-        // Koniec dzisiejszego dnia dla bufora Google API
-        const endOfTodayISO = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
+        // Wyznaczenie filtrowania w zależności od trybu
+        let dueMaxISO = '';
+        if (currentMode === 'overdue') {
+          dueMaxISO = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
+        } else if (currentMode === 'quick') {
+          dueMaxISO = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
+        } else if (currentMode === 'range') {
+          const endDateVal = document.getElementById('range-end').value;
+          if (endDateVal) {
+            dueMaxISO = new Date(`${endDateVal}T23:59:59`).toISOString();
+          }
+        }
 
         tasks = [];
 
         for (const list of taskLists) {
-          const res = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&dueMax=${endOfTodayISO}&maxResults=100`, {
-            headers: { Authorization: `Bearer ${accessToken}` }
-          });
+          let url = `https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&maxResults=100`;
+          if (dueMaxISO) url += `&dueMax=${dueMaxISO}`;
+
+          const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
           const data = await res.json();
           const items = data.items || [];
 
           const mapped = items.filter(t => {
-            if (!t.title || t.title.trim() === '' || !t.due) return false;
-            
+            if (!t.title || t.title.trim() === '') return false;
+            if (!t.due) return currentMode === 'quick'; // W trybie 'szybkie' bierzemy też zadania bez daty
+
             const taskDateStr = t.due.split('T')[0];
-            // ŚCIŚLE POPRZEDNIE DNI: data zadania musi być mniejsza od dzisiejszej daty lokalnej
-            return taskDateStr < todayStr;
+            
+            if (currentMode === 'overdue') {
+              return taskDateStr < todayStr; // Strict zaległe sprzed dzisiaj
+            } else if (currentMode === 'quick') {
+              return taskDateStr <= todayStr; // Zaległe + z dzisiaj
+            } else if (currentMode === 'range') {
+              const startVal = document.getElementById('range-start').value;
+              const endVal = document.getElementById('range-end').value;
+              return taskDateStr >= startVal && taskDateStr <= endVal;
+            }
+            return true;
           }).map(t => ({ 
             ...t, 
             listId: list.id, 
             listTitle: list.title,
-            formattedDueDate: t.due.split('T')[0]
+            formattedDueDate: t.due ? t.due.split('T')[0] : 'Brak daty'
           }));
 
           tasks = tasks.concat(mapped);
@@ -325,17 +517,32 @@
       const taskDueDate = document.getElementById('task-due-date');
       const holdHint = document.getElementById('hold-hint');
       const reloadBtn = document.getElementById('reload-btn');
+      const quickDoneBtn = document.getElementById('quick-done-btn');
 
       card.style.transition = 'none';
       card.style.transform = 'none';
       card.style.backgroundColor = '#1a1a24';
       card.style.borderColor = '#2e2e3e';
 
+      // Licznik szybkich zadań
+      document.getElementById('quick-count').innerText = quickTasksList.length;
+      if (currentMode === 'quick' && quickTasksList.length > 0) {
+        quickDoneBtn.style.display = 'inline-block';
+      } else {
+        quickDoneBtn.style.display = 'none';
+      }
+
       if (currentIndex >= tasks.length) {
         taskListName.innerText = "";
         taskDueDate.style.display = "none";
         holdHint.style.display = "none";
-        taskTitle.innerText = "Wszystkie zaległe zadania ogarnięte! 🎉";
+        
+        if (currentMode === 'quick' && quickTasksList.length > 0) {
+          showQuickTasksList();
+          return;
+        }
+
+        taskTitle.innerText = "Brak kolejnych zadań w tym trybie! 🎉";
         reloadBtn.style.display = "inline-block";
         return;
       }
@@ -348,7 +555,7 @@
       
       taskListName.innerText = currentTask.listTitle;
       taskDueDate.style.display = "inline-block";
-      taskDueDate.innerText = `⏰ Zaległe od: ${currentTask.formattedDueDate}`;
+      taskDueDate.innerText = `⏰ Termin: ${currentTask.formattedDueDate}`;
       taskTitle.innerText = currentTask.title;
 
       initGestures(card);
@@ -370,21 +577,26 @@
         el.style.transition = 'none';
         el.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rotate}deg)`;
 
+        // Kolorowanie feedbacku pod palcem w zależności od trybu
         if (Math.abs(y) > Math.abs(x)) {
           if (y > 30) {
-            el.style.backgroundColor = 'rgba(46, 213, 115, 0.2)';
-            el.style.borderColor = '#2ed573';
+            el.style.backgroundColor = 'rgba(46, 213, 115, 0.2)'; el.style.borderColor = '#2ed573'; // Dół (Zrobione)
           } else if (y < -30) {
-            el.style.backgroundColor = 'rgba(165, 94, 234, 0.2)';
-            el.style.borderColor = '#a55eea';
+            el.style.backgroundColor = 'rgba(165, 94, 234, 0.2)'; el.style.borderColor = '#a55eea'; // Góra (Poniedziałek)
           }
         } else {
           if (x > 30) {
-            el.style.backgroundColor = 'rgba(0, 122, 255, 0.2)';
-            el.style.borderColor = '#007bff';
+            if (currentMode === 'quick') {
+              el.style.backgroundColor = 'rgba(255, 205, 86, 0.25)'; el.style.borderColor = '#ffcd56'; // Prawo w 'quick' (Dodaj szybkie)
+            } else {
+              el.style.backgroundColor = 'rgba(0, 122, 255, 0.2)'; el.style.borderColor = '#007bff'; // Prawo (Na dziś)
+            }
           } else if (x < -30) {
-            el.style.backgroundColor = 'rgba(255, 159, 67, 0.2)';
-            el.style.borderColor = '#ff9f43';
+            if (currentMode === 'quick') {
+              el.style.backgroundColor = 'rgba(120, 120, 120, 0.2)'; el.style.borderColor = '#777'; // Lewo w 'quick' (Pomiń)
+            } else {
+              el.style.backgroundColor = 'rgba(255, 159, 67, 0.2)'; el.style.borderColor = '#ff9f43'; // Lewo (Na jutro)
+            }
           }
         }
       });
@@ -399,8 +611,13 @@
           if (y > 0) updateTask('complete');
           else updateTask('monday');
         } else if (Math.abs(x) > Math.abs(y) && Math.abs(x) > THRESHOLD) {
-          if (x > 0) updateTask('today');
-          else updateTask('tomorrow');
+          if (x > 0) {
+            if (currentMode === 'quick') addQuickTask();
+            else updateTask('today');
+          } else {
+            if (currentMode === 'quick') skipQuickTask();
+            else updateTask('tomorrow');
+          }
         } else {
           el.style.transform = 'translate3d(0, 0, 0) rotate(0deg)';
           el.style.backgroundColor = '#1a1a24';
@@ -409,6 +626,80 @@
       });
 
       hammerManager.on("press", () => document.getElementById('modal').style.display = 'flex');
+    }
+
+    // Dodawanie zadania do wyselekcjonowanej 5 w trybie Szybkie
+    function addQuickTask() {
+      const task = tasks[currentIndex];
+      quickTasksList.push(task);
+      currentIndex++;
+
+      if (quickTasksList.length >= 5) {
+        showQuickTasksList();
+      } else {
+        showNextTask();
+      }
+    }
+
+    function skipQuickTask() {
+      currentIndex++;
+      showNextTask();
+    }
+
+    // Wyświetlanie listy wyselekcjonowanych 5 szybkich zadań do wykonania
+    function showQuickTasksList() {
+      document.getElementById('card-container').style.display = 'none';
+      document.getElementById('hint-horizontal').style.display = 'none';
+      document.getElementById('hint-bottom').style.display = 'none';
+      document.getElementById('quick-list-view').style.display = 'flex';
+
+      renderQuickChecklist();
+    }
+
+    function backToQuickSwipe() {
+      document.getElementById('quick-list-view').style.display = 'none';
+      document.getElementById('card-container').style.display = 'flex';
+      document.getElementById('hint-horizontal').style.display = 'flex';
+      document.getElementById('hint-bottom').style.display = 'block';
+      showNextTask();
+    }
+
+    function renderQuickChecklist() {
+      const container = document.getElementById('quick-items-container');
+      container.innerHTML = '';
+
+      if (quickTasksList.length === 0) {
+        container.innerHTML = '<div style="color:#888; text-align:center; padding:20px;">Brak wybranych szybkich zadań.</div>';
+        return;
+      }
+
+      quickTasksList.forEach((task, idx) => {
+        const item = document.createElement('div');
+        item.className = 'quick-item';
+        item.innerHTML = `
+          <input type="checkbox" id="chk-${idx}" ${task.completed ? 'checked disabled' : ''} onchange="completeQuickListItem(${idx})">
+          <div class="quick-item-title ${task.completed ? 'done' : ''}" id="title-${idx}">
+            <div style="font-size:0.7rem; color:#ff9f43; font-weight:bold;">${task.listTitle}</div>
+            ${task.title}
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    async function completeQuickListItem(idx) {
+      const task = quickTasksList[idx];
+      task.completed = true;
+
+      document.getElementById(`title-${idx}`).classList.add('done');
+      document.getElementById(`chk-${idx}`).disabled = true;
+
+      const url = `https://tasks.googleapis.com/tasks/v1/lists/${task.listId}/tasks/${task.id}`;
+      await fetch(url, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' })
+      });
     }
 
     async function updateTask(action, customDate = null) {
