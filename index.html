@@ -11,16 +11,17 @@
     body { 
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
       display: flex; 
-      justify-content: space-between; 
+      flex-direction: column;
       align-items: center; 
-      height: 100vh; 
+      justify-content: space-between; 
+      min-height: 100vh;
+      min-height: 100dvh; 
       margin: 0; 
       background: #0f0f12; 
       color: #fff; 
-      flex-direction: column;
-      overflow: hidden;
-      touch-action: none;
-      padding: 12px 10px;
+      overflow-y: auto;
+      touch-action: manipulation;
+      padding: 10px 10px 16px 10px;
     }
     
     /* Nawigacja trybów */
@@ -33,6 +34,7 @@
       padding: 4px;
       border-radius: 12px;
       border: 1px solid #2e2e3e;
+      flex-shrink: 0;
     }
 
     .mode-btn {
@@ -56,16 +58,17 @@
 
     /* Paski z instrukcjami */
     .hint-bar {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: #a55eea;
       text-align: center;
       background: rgba(165, 94, 234, 0.08);
-      padding: 8px 12px;
-      border-radius: 10px;
+      padding: 6px 10px;
+      border-radius: 8px;
       border: 1px solid rgba(165, 94, 234, 0.2);
       width: 100%;
       max-width: 360px;
-      margin-top: 6px;
+      margin-top: 4px;
+      flex-shrink: 0;
     }
     
     .horizontal-hints {
@@ -73,9 +76,10 @@
       justify-content: space-between;
       width: 100%;
       max-width: 360px;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: #aaa;
       padding: 0 4px;
+      flex-shrink: 0;
     }
 
     #card-container {
@@ -83,24 +87,26 @@
       width: 100%;
       max-width: 360px;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       flex-grow: 1;
-      margin: 8px 0;
+      margin: 6px 0;
     }
 
     #card { 
       width: 100%; 
-      max-height: 55vh; 
+      max-height: 42dvh; 
+      min-height: 180px;
       background: #1a1a24; 
-      border-radius: 20px; 
+      border-radius: 16px; 
       display: flex; 
       flex-direction: column;
       align-items: center; 
       justify-content: center; 
-      padding: 20px 16px; 
+      padding: 16px 14px; 
       text-align: center; 
-      box-shadow: 0 12px 30px rgba(0,0,0,0.7); 
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6); 
       user-select: none; 
       position: relative; 
       border: 2px solid #2e2e3e;
@@ -110,32 +116,41 @@
     }
 
     #task-title {
-      font-size: 1.15rem;
-      line-height: 1.4;
+      font-size: 1.1rem;
+      line-height: 1.35;
       font-weight: 600;
       word-break: break-word;
       white-space: pre-wrap;
       color: #ffffff;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     #task-list-name {
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       color: #ff9f43;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       text-transform: uppercase;
       letter-spacing: 1px;
       font-weight: bold;
     }
 
     #task-due-date {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: #ff5252;
       background: rgba(255, 82, 82, 0.1);
       padding: 3px 8px;
       border-radius: 6px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       display: inline-block;
+    }
+
+    /* Przycisk akcji zakonczenia szybkich zadań */
+    #quick-finish-bar {
+      display: none;
+      width: 100%;
+      max-width: 360px;
+      margin-top: 6px;
+      flex-shrink: 0;
     }
 
     /* Siatka planowania tygodniowego */
@@ -146,47 +161,48 @@
       width: 100%;
       max-width: 360px;
       margin-top: 6px;
+      flex-shrink: 0;
     }
 
     .week-day-btn {
       background: #1e1e2d;
       border: 1px solid #33334d;
       border-radius: 10px;
-      padding: 8px 4px;
+      padding: 6px 2px;
       color: #fff;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       transition: all 0.15s ease;
     }
 
     .week-day-btn:active {
       background: #007bff;
       border-color: #007bff;
-      transform: scale(0.96);
+      transform: scale(0.95);
     }
 
     .week-day-btn .day-title {
       font-weight: bold;
-      margin-bottom: 2px;
+      margin-bottom: 1px;
     }
 
     .week-day-btn .day-date {
-      font-size: 0.65rem;
+      font-size: 0.62rem;
       color: #aaa;
     }
 
     .week-day-btn .day-badge {
-      margin-top: 4px;
+      margin-top: 3px;
       background: rgba(0, 123, 255, 0.25);
       color: #70a1ff;
       font-weight: bold;
-      padding: 2px 6px;
-      border-radius: 10px;
-      font-size: 0.65rem;
+      padding: 1px 5px;
+      border-radius: 8px;
+      font-size: 0.62rem;
     }
 
     /* Widok Wykonania Szybkich Zadań (Checklist) */
@@ -198,7 +214,7 @@
       flex-grow: 1;
       background: #1a1a24;
       border-radius: 16px;
-      padding: 16px;
+      padding: 14px;
       border: 1px solid #2e2e3e;
       overflow-y: auto;
       margin: 8px 0;
@@ -207,23 +223,23 @@
     .quick-item {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       background: #252533;
-      padding: 12px;
-      border-radius: 10px;
+      padding: 10px;
+      border-radius: 8px;
       margin-bottom: 8px;
       border: 1px solid #333346;
     }
 
     .quick-item input[type="checkbox"] {
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       accent-color: #2ed573;
       cursor: pointer;
     }
 
     .quick-item-title {
-      font-size: 0.95rem;
+      font-size: 0.88rem;
       line-height: 1.3;
       flex-grow: 1;
     }
@@ -248,7 +264,7 @@
 
     .modal-content { 
       background: #222; 
-      padding: 24px; 
+      padding: 20px; 
       border-radius: 16px; 
       text-align: center; 
       box-shadow: 0 10px 20px rgba(0,0,0,0.5);
@@ -268,23 +284,26 @@
     }
 
     button.action-btn { 
-      padding: 10px 18px; 
-      font-size: 0.9rem; 
-      margin-top: 10px; 
+      padding: 10px 16px; 
+      font-size: 0.88rem; 
+      margin-top: 8px; 
       cursor: pointer; 
       border-radius: 8px;
       border: none;
       background: #007bff;
       color: white;
       font-weight: bold;
+      width: 100%;
     }
 
     #switch-account {
       background: transparent;
       color: #666;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       text-decoration: underline;
       border: none;
+      flex-shrink: 0;
+      margin-top: 4px;
     }
   </style>
 </head>
@@ -299,7 +318,7 @@
 
   <!-- Górny pasek wskazówek -->
   <div class="hint-bar" id="hint-top">
-    ⬆️ <b>SWIPE UP:</b> Kolejny poniedziałek
+    ⬆️️ <b>SWIPE UP:</b> Kolejny poniedziałek
   </div>
 
   <!-- Główny kontener fiszek -->
@@ -310,14 +329,17 @@
       <div id="task-list-name"></div>
       <div id="task-due-date"></div>
       <div id="task-title">Ładowanie zadań...</div>
-      <div id="hold-hint" style="font-size: 0.7rem; color: #777; margin-top: 6px;">👆 Przytrzymaj = Kalendarz (Inna data)</div>
-      
-      <button id="quick-done-btn" class="action-btn" style="display:none; background:#2ed573;" onclick="showQuickTasksList()">
-        Pokaż wybrane szybkie (<span id="quick-count">0</span>/5) ➔
-      </button>
+      <div id="hold-hint" style="font-size: 0.68rem; color: #777; margin-top: 4px;">👆 Przytrzymaj = Kalendarz (Inna data)</div>
 
       <button id="reload-btn" class="action-btn" style="display:none;" onclick="reloadTasks()">Odśwież listę 🔄</button>
     </div>
+  </div>
+
+  <!-- Dedykowany stały pasek zakończenia wyboru szybkich zadań -->
+  <div id="quick-finish-bar">
+    <button class="action-btn" style="background:#2ed573; margin:0;" onclick="showQuickTasksList()">
+      Zakończ szukanie i przejdź do zadań (<span id="quick-count">0</span>/5) ➔
+    </button>
   </div>
 
   <!-- Siatka Planowania Tygodniowego -->
@@ -325,16 +347,16 @@
 
   <!-- Lista kontrolna Szybkich Zadań (Faza 2 trybu Szybkie) -->
   <div id="quick-list-view">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-      <h3 style="margin:0; font-size:1.1rem; color:#2ed573;">⚡ Szybkie Zadania do Zrobienia</h3>
-      <button class="action-btn" style="margin:0; padding:4px 8px; font-size:0.75rem; background:#444;" onclick="backToQuickSwipe()">+ Dodaj więcej</button>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="margin:0; font-size:1rem; color:#2ed573;">⚡ Lista Szybkich Zadań</h3>
+      <button class="action-btn" style="margin:0; width:auto; padding:4px 8px; font-size:0.72rem; background:#444;" onclick="backToQuickSwipe()">+ Szukaj więcej</button>
     </div>
     <div id="quick-items-container"></div>
   </div>
 
   <!-- Wskaźniki Lewo / Prawo -->
   <div class="horizontal-hints" id="hint-horizontal">
-    <span id="hint-left">⬅️ <b>LEWO:</b> Na jutro</span>
+    <span id="hint-left">⬅️️ <b>LEWO:</b> Na jutro</span>
     <span id="hint-right"><b>PRAWO:</b> Na dziś ➡️</span>
   </div>
 
@@ -365,7 +387,7 @@
     // Stan aplikacji
     let currentMode = 'overdue'; // 'overdue' | 'quick' | 'week'
     let quickTasksList = []; 
-    let dayTaskCounts = {}; // Licznik zadań na konkretne dni YYYY-MM-DD
+    let dayTaskCounts = {};
 
     window.addEventListener('DOMContentLoaded', () => {
       if (accessToken) {
@@ -398,11 +420,11 @@
       document.getElementById('card').style.display = 'none';
       document.getElementById('quick-list-view').style.display = 'none';
       document.getElementById('week-grid-container').style.display = 'none';
+      document.getElementById('quick-finish-bar').style.display = 'none';
       document.getElementById('login-btn').style.display = 'block';
       document.getElementById('switch-account').style.display = 'none';
     }
 
-    // Wyznaczanie list dat dla bieżącego tygodnia + kolejnego poniedziałku
     function getWeekDaysList() {
       const dayNames = ['Niedz', 'Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob'];
       const now = new Date();
@@ -428,7 +450,6 @@
         });
       }
 
-      // 8. przycisk: Kolejny Poniedziałek
       const nextMon = new Date(mon);
       nextMon.setDate(mon.getDate() + 7);
       const yyyyN = nextMon.getFullYear();
@@ -455,11 +476,20 @@
       
       if (newMode === 'week') {
         document.getElementById('week-grid-container').style.display = 'grid';
+        document.getElementById('quick-finish-bar').style.display = 'none';
         document.getElementById('hint-top').style.display = 'none';
         document.getElementById('hint-horizontal').style.display = 'none';
         document.getElementById('hint-bottom').style.display = 'none';
+      } else if (newMode === 'quick') {
+        document.getElementById('week-grid-container').style.display = 'none';
+        document.getElementById('quick-finish-bar').style.display = quickTasksList.length > 0 ? 'block' : 'none';
+        document.getElementById('hint-top').style.display = 'block';
+        document.getElementById('hint-horizontal').style.display = 'flex';
+        document.getElementById('hint-bottom').style.display = 'block';
+        updateHints();
       } else {
         document.getElementById('week-grid-container').style.display = 'none';
+        document.getElementById('quick-finish-bar').style.display = 'none';
         document.getElementById('hint-top').style.display = 'block';
         document.getElementById('hint-horizontal').style.display = 'flex';
         document.getElementById('hint-bottom').style.display = 'block';
@@ -477,7 +507,7 @@
 
       if (currentMode === 'quick') {
         top.innerHTML = "⬆️ <b>SWIPE UP:</b> Przesuń na poniedziałek";
-        left.innerHTML = "⬅️️ <b>LEWO:</b> Długie / Pomiń";
+        left.innerHTML = "⬅️ <b>LEWO:</b> Długie / Pomiń";
         right.innerHTML = "<b>PRAWO:</b> ⚡ Szybkie (dodaj)";
         bottom.innerHTML = "⬇️ <b>SWIPE DOWN:</b> Zrobione teraz";
         bottom.style.color = "#2ed573";
@@ -565,7 +595,7 @@
             } else if (currentMode === 'quick') {
               return !t.due || t.due.split('T')[0] <= todayStr;
             } else if (currentMode === 'week') {
-              return true; // W trybie tygodnia przeglądamy wszystkie nieukończone zadania
+              return true;
             }
             return true;
           }).map(t => ({ 
@@ -593,7 +623,6 @@
       const taskDueDate = document.getElementById('task-due-date');
       const holdHint = document.getElementById('hold-hint');
       const reloadBtn = document.getElementById('reload-btn');
-      const quickDoneBtn = document.getElementById('quick-done-btn');
 
       card.style.transition = 'none';
       card.style.transform = 'none';
@@ -602,9 +631,7 @@
 
       document.getElementById('quick-count').innerText = quickTasksList.length;
       if (currentMode === 'quick' && quickTasksList.length > 0) {
-        quickDoneBtn.style.display = 'inline-block';
-      } else {
-        quickDoneBtn.style.display = 'none';
+        document.getElementById('quick-finish-bar').style.display = 'block';
       }
 
       if (currentIndex >= tasks.length) {
@@ -706,7 +733,6 @@
       if (currentIndex >= tasks.length) return;
       const task = tasks[currentIndex];
 
-      // Aktualizacja liczników na przyciskach w czasie rzeczywistym
       if (task.formattedDueDate && dayTaskCounts[task.formattedDueDate]) {
         dayTaskCounts[task.formattedDueDate]--;
       }
@@ -748,6 +774,7 @@
       document.getElementById('hint-horizontal').style.display = 'none';
       document.getElementById('hint-bottom').style.display = 'none';
       document.getElementById('week-grid-container').style.display = 'none';
+      document.getElementById('quick-finish-bar').style.display = 'none';
       document.getElementById('quick-list-view').style.display = 'flex';
 
       renderQuickChecklist();
@@ -758,6 +785,9 @@
       document.getElementById('card-container').style.display = 'flex';
       document.getElementById('hint-horizontal').style.display = 'flex';
       document.getElementById('hint-bottom').style.display = 'block';
+      if (quickTasksList.length > 0) {
+        document.getElementById('quick-finish-bar').style.display = 'block';
+      }
       showNextTask();
     }
 
@@ -776,7 +806,7 @@
         item.innerHTML = `
           <input type="checkbox" id="chk-${idx}" ${task.completed ? 'checked disabled' : ''} onchange="completeQuickListItem(${idx})">
           <div class="quick-item-title ${task.completed ? 'done' : ''}" id="title-${idx}">
-            <div style="font-size:0.7rem; color:#ff9f43; font-weight:bold;">${task.listTitle}</div>
+            <div style="font-size:0.68rem; color:#ff9f43; font-weight:bold;">${task.listTitle}</div>
             ${task.title}
           </div>
         `;
