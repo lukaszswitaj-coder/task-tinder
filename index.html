@@ -56,6 +56,33 @@
       color: #fff;
     }
 
+    /* Pasek wyboru daty granicznej (Tryb Tydzień) */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 360px;
+      margin-top: 6px;
+      align-items: center;
+      justify-content: space-between;
+      background: #1a1a24;
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      color: #aaa;
+      border: 1px solid #2e2e3e;
+      flex-shrink: 0;
+    }
+
+    .filter-bar input[type="date"] {
+      background: #2b2b3b;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 4px 6px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+    }
+
     /* Paski z instrukcjami */
     .hint-bar {
       font-size: 0.75rem;
@@ -96,8 +123,8 @@
 
     #card { 
       width: 100%; 
-      max-height: 42dvh; 
-      min-height: 180px;
+      max-height: 40dvh; 
+      min-height: 170px;
       background: #1a1a24; 
       border-radius: 16px; 
       display: flex; 
@@ -316,9 +343,15 @@
     <button class="mode-btn" id="btn-mode-week" onclick="switchMode('week')">📅 Tydzień</button>
   </div>
 
+  <!-- Pasek wyboru daty granicznej w Trybie Tydzień -->
+  <div id="week-filter-bar" class="filter-bar" style="display:none;">
+    <span>Pokaż zadania do daty:</span>
+    <input type="date" id="week-end-date" onchange="reloadTasks()">
+  </div>
+
   <!-- Górny pasek wskazówek -->
   <div class="hint-bar" id="hint-top">
-    ⬆️️ <b>SWIPE UP:</b> Kolejny poniedziałek
+    ⬆ <b>SWIPE UP:</b> Kolejny poniedziałek
   </div>
 
   <!-- Główny kontener fiszek -->
@@ -356,7 +389,7 @@
 
   <!-- Wskaźniki Lewo / Prawo -->
   <div class="horizontal-hints" id="hint-horizontal">
-    <span id="hint-left">⬅️️ <b>LEWO:</b> Na jutro</span>
+    <span id="hint-left">⬅ <b>LEWO:</b> Na jutro</span>
     <span id="hint-right"><b>PRAWO:</b> Na dziś ➡️</span>
   </div>
 
@@ -389,6 +422,11 @@
     let quickTasksList = []; 
     let dayTaskCounts = {};
 
+    // Ustawienie domyślnej daty granicznej dla Trybu Tydzień na DZISIAJ
+    const nowObj = new Date();
+    const todayStr = nowObj.toISOString().split('T')[0];
+    document.getElementById('week-end-date').value = todayStr;
+
     window.addEventListener('DOMContentLoaded', () => {
       if (accessToken) {
         document.getElementById('login-btn').style.display = 'none';
@@ -420,6 +458,7 @@
       document.getElementById('card').style.display = 'none';
       document.getElementById('quick-list-view').style.display = 'none';
       document.getElementById('week-grid-container').style.display = 'none';
+      document.getElementById('week-filter-bar').style.display = 'none';
       document.getElementById('quick-finish-bar').style.display = 'none';
       document.getElementById('login-btn').style.display = 'block';
       document.getElementById('switch-account').style.display = 'none';
@@ -475,12 +514,14 @@
       document.getElementById('card-container').style.display = 'flex';
       
       if (newMode === 'week') {
+        document.getElementById('week-filter-bar').style.display = 'flex';
         document.getElementById('week-grid-container').style.display = 'grid';
         document.getElementById('quick-finish-bar').style.display = 'none';
         document.getElementById('hint-top').style.display = 'none';
         document.getElementById('hint-horizontal').style.display = 'none';
         document.getElementById('hint-bottom').style.display = 'none';
       } else if (newMode === 'quick') {
+        document.getElementById('week-filter-bar').style.display = 'none';
         document.getElementById('week-grid-container').style.display = 'none';
         document.getElementById('quick-finish-bar').style.display = quickTasksList.length > 0 ? 'block' : 'none';
         document.getElementById('hint-top').style.display = 'block';
@@ -488,6 +529,7 @@
         document.getElementById('hint-bottom').style.display = 'block';
         updateHints();
       } else {
+        document.getElementById('week-filter-bar').style.display = 'none';
         document.getElementById('week-grid-container').style.display = 'none';
         document.getElementById('quick-finish-bar').style.display = 'none';
         document.getElementById('hint-top').style.display = 'block';
@@ -568,15 +610,22 @@
         const taskLists = listsData.items || [];
 
         const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
+        const currTodayStr = now.toISOString().split('T')[0];
 
         dayTaskCounts = {};
         tasks = [];
 
+        // Wyznaczenie daty granicznej dla Trybu Tydzień
+        const weekEndDate = document.getElementById('week-end-date').value || currTodayStr;
+        const weekEndDateISO = new Date(`${weekEndDate}T23:59:59`).toISOString();
+
         for (const list of taskLists) {
-          const res = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&maxResults=100`, {
-            headers: { Authorization: `Bearer ${accessToken}` }
-          });
+          let url = `https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&maxResults=100`;
+          if (currentMode === 'week') {
+            url += `&dueMax=${weekEndDateISO}`;
+          }
+
+          const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
           const data = await res.json();
           const items = data.items || [];
 
@@ -591,11 +640,12 @@
             if (!t.title || t.title.trim() === '') return false;
 
             if (currentMode === 'overdue') {
-              return t.due && t.due.split('T')[0] < todayStr;
+              return t.due && t.due.split('T')[0] < currTodayStr;
             } else if (currentMode === 'quick') {
-              return !t.due || t.due.split('T')[0] <= todayStr;
+              return !t.due || t.due.split('T')[0] <= currTodayStr;
             } else if (currentMode === 'week') {
-              return true;
+              // Ładujemy zadania z datą DO wybranego dnia
+              return t.due && t.due.split('T')[0] <= weekEndDate;
             }
             return true;
           }).map(t => ({ 
@@ -774,6 +824,7 @@
       document.getElementById('hint-horizontal').style.display = 'none';
       document.getElementById('hint-bottom').style.display = 'none';
       document.getElementById('week-grid-container').style.display = 'none';
+      document.getElementById('week-filter-bar').style.display = 'none';
       document.getElementById('quick-finish-bar').style.display = 'none';
       document.getElementById('quick-list-view').style.display = 'flex';
 
