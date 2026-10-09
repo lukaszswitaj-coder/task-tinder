@@ -171,7 +171,6 @@
       display: inline-block;
     }
 
-    /* Przycisk akcji zakonczenia szybkich zadań */
     #quick-finish-bar {
       display: none;
       width: 100%;
@@ -180,7 +179,7 @@
       flex-shrink: 0;
     }
 
-    /* Siatka planowania tygodniowego */
+    /* Siatka planowania tygodniowego (8 dni od dzisiaj) */
     #week-grid-container {
       display: none;
       grid-template-columns: repeat(4, 1fr);
@@ -232,7 +231,7 @@
       font-size: 0.62rem;
     }
 
-    /* Widok Wykonania Szybkich Zadań (Checklist) */
+    /* Widok Wykonania Szybkich Zadań */
     #quick-list-view {
       display: none;
       flex-direction: column;
@@ -368,7 +367,6 @@
     </div>
   </div>
 
-  <!-- Dedykowany stały pasek zakończenia wyboru szybkich zadań -->
   <div id="quick-finish-bar">
     <button class="action-btn" style="background:#2ed573; margin:0;" onclick="showQuickTasksList()">
       Zakończ szukanie i przejdź do zadań (<span id="quick-count">0</span>/5) ➔
@@ -378,7 +376,7 @@
   <!-- Siatka Planowania Tygodniowego -->
   <div id="week-grid-container"></div>
 
-  <!-- Lista kontrolna Szybkich Zadań (Faza 2 trybu Szybkie) -->
+  <!-- Lista kontrolna Szybkich Zadań -->
   <div id="quick-list-view">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
       <h3 style="margin:0; font-size:1rem; color:#2ed573;">⚡ Lista Szybkich Zadań</h3>
@@ -417,12 +415,10 @@
     let accessToken = localStorage.getItem('google_tasks_token') || null;
     let tasks = [], currentIndex = 0, tokenClient, hammerManager = null;
     
-    // Stan aplikacji
-    let currentMode = 'overdue'; // 'overdue' | 'quick' | 'week'
+    let currentMode = 'overdue'; 
     let quickTasksList = []; 
     let dayTaskCounts = {};
 
-    // Ustawienie domyślnej daty granicznej dla Trybu Tydzień na DZISIAJ
     const nowObj = new Date();
     const todayStr = nowObj.toISOString().split('T')[0];
     document.getElementById('week-end-date').value = todayStr;
@@ -464,42 +460,30 @@
       document.getElementById('switch-account').style.display = 'none';
     }
 
+    // Wyznaczanie 8 kolejnych dni rozpoczynających się od dzisiaj
     function getWeekDaysList() {
       const dayNames = ['Niedz', 'Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob'];
       const now = new Date();
-      const currentDay = now.getDay(); 
-      
-      const diffToMon = currentDay === 0 ? -6 : 1 - currentDay;
-      const mon = new Date(now);
-      mon.setDate(now.getDate() + diffToMon);
 
       const days = [];
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(mon);
-        d.setDate(mon.getDate() + i);
+      for (let i = 0; i < 8; i++) {
+        const d = new Date(now);
+        d.setDate(now.getDate() + i);
         const yyyy = d.getFullYear();
         const mm = String(d.getMonth() + 1).padStart(2, '0');
         const dd = String(d.getDate()).padStart(2, '0');
         const dateStr = `${yyyy}-${mm}-${dd}`;
         
+        let label = dayNames[d.getDay()];
+        if (i === 0) label = 'Dziś';
+        else if (i === 1) label = 'Jutro';
+
         days.push({
-          name: dayNames[d.getDay()],
+          name: label,
           dateStr: dateStr,
           displayDate: `${dd}.${mm}`
         });
       }
-
-      const nextMon = new Date(mon);
-      nextMon.setDate(mon.getDate() + 7);
-      const yyyyN = nextMon.getFullYear();
-      const mmN = String(nextMon.getMonth() + 1).padStart(2, '0');
-      const ddN = String(nextMon.getDate()).padStart(2, '0');
-      
-      days.push({
-        name: 'Kol. Pon',
-        dateStr: `${yyyyN}-${mmN}-${ddN}`,
-        displayDate: `${ddN}.${mmN}`
-      });
 
       return days;
     }
@@ -615,7 +599,6 @@
         dayTaskCounts = {};
         tasks = [];
 
-        // Wyznaczenie daty granicznej dla Trybu Tydzień
         const weekEndDate = document.getElementById('week-end-date').value || currTodayStr;
         const weekEndDateISO = new Date(`${weekEndDate}T23:59:59`).toISOString();
 
@@ -644,7 +627,6 @@
             } else if (currentMode === 'quick') {
               return !t.due || t.due.split('T')[0] <= currTodayStr;
             } else if (currentMode === 'week') {
-              // Ładujemy zadania z datą DO wybranego dnia
               return t.due && t.due.split('T')[0] <= weekEndDate;
             }
             return true;
