@@ -21,15 +21,15 @@
       color: #fff; 
       overflow-y: auto;
       touch-action: manipulation;
-      padding: 10px 10px 16px 10px;
+      padding: 10px 8px 16px 8px;
     }
     
-    /* Nawigacja trybów */
+    /* Nawigacja trybów (4 przyciski) */
     .nav-modes {
       display: flex;
-      gap: 6px;
+      gap: 4px;
       width: 100%;
-      max-width: 360px;
+      max-width: 380px;
       background: #1a1a24;
       padding: 4px;
       border-radius: 12px;
@@ -39,8 +39,8 @@
 
     .mode-btn {
       flex: 1;
-      padding: 8px 4px;
-      font-size: 0.75rem;
+      padding: 7px 2px;
+      font-size: 0.68rem;
       border: none;
       border-radius: 8px;
       background: transparent;
@@ -49,6 +49,8 @@
       cursor: pointer;
       transition: all 0.2s ease;
       margin: 0;
+      white-space: nowrap;
+      text-align: center;
     }
 
     .mode-btn.active {
@@ -231,6 +233,30 @@
       font-size: 0.62rem;
     }
 
+    /* Panel Trybu 4: Masowe przenoszenie */
+    #bulk-panel {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 360px;
+      flex-grow: 1;
+      background: #1a1a24;
+      border-radius: 16px;
+      padding: 24px 16px;
+      border: 1px solid #2e2e3e;
+      text-align: center;
+      margin: 8px 0;
+    }
+
+    #bulk-status {
+      font-size: 1.05rem;
+      line-height: 1.5;
+      margin-bottom: 16px;
+      color: #eee;
+    }
+
     /* Widok Wykonania Szybkich Zadań */
     #quick-list-view {
       display: none;
@@ -335,11 +361,12 @@
 </head>
 <body>
 
-  <!-- Menu Trybów -->
+  <!-- Menu Trybów (4 zakładki) -->
   <div class="nav-modes">
     <button class="mode-btn active" id="btn-mode-overdue" onclick="switchMode('overdue')">Zaległe</button>
     <button class="mode-btn" id="btn-mode-quick" onclick="switchMode('quick')">⚡ Szybkie</button>
     <button class="mode-btn" id="btn-mode-week" onclick="switchMode('week')">📅 Tydzień</button>
+    <button class="mode-btn" id="btn-mode-bulk" onclick="switchMode('bulk')">⏩ Na dziś</button>
   </div>
 
   <!-- Pasek wyboru daty granicznej w Trybie Tydzień -->
@@ -365,6 +392,15 @@
 
       <button id="reload-btn" class="action-btn" style="display:none;" onclick="reloadTasks()">Odśwież listę 🔄</button>
     </div>
+  </div>
+
+  <!-- Dedykowany Panel Trybu 4: Masowe przenoszenie na dziś -->
+  <div id="bulk-panel">
+    <div style="font-size: 2.2rem; margin-bottom: 8px;">⏩</div>
+    <div id="bulk-status">Sprawdzanie zaległych zadań...</div>
+    <button id="bulk-action-btn" class="action-btn" style="background:#2ed573; display:none;" onclick="executeBulkMoveToToday()">
+      Przełóż wszystkie na dziś 🚀
+    </button>
   </div>
 
   <div id="quick-finish-bar">
@@ -415,9 +451,10 @@
     let accessToken = localStorage.getItem('google_tasks_token') || null;
     let tasks = [], currentIndex = 0, tokenClient, hammerManager = null;
     
-    let currentMode = 'overdue'; 
+    let currentMode = 'overdue'; // 'overdue' | 'quick' | 'week' | 'bulk'
     let quickTasksList = []; 
     let dayTaskCounts = {};
+    let bulkOverdueTasks = [];
 
     const nowObj = new Date();
     const todayStr = nowObj.toISOString().split('T')[0];
@@ -455,12 +492,12 @@
       document.getElementById('quick-list-view').style.display = 'none';
       document.getElementById('week-grid-container').style.display = 'none';
       document.getElementById('week-filter-bar').style.display = 'none';
+      document.getElementById('bulk-panel').style.display = 'none';
       document.getElementById('quick-finish-bar').style.display = 'none';
       document.getElementById('login-btn').style.display = 'block';
       document.getElementById('switch-account').style.display = 'none';
     }
 
-    // Wyznaczanie 8 kolejnych dni rozpoczynających się od dzisiaj
     function getWeekDaysList() {
       const dayNames = ['Niedz', 'Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob'];
       const now = new Date();
@@ -495,34 +532,42 @@
       document.getElementById(`btn-mode-${newMode}`).classList.add('active');
 
       document.getElementById('quick-list-view').style.display = 'none';
-      document.getElementById('card-container').style.display = 'flex';
-      
-      if (newMode === 'week') {
-        document.getElementById('week-filter-bar').style.display = 'flex';
-        document.getElementById('week-grid-container').style.display = 'grid';
-        document.getElementById('quick-finish-bar').style.display = 'none';
+      document.getElementById('week-filter-bar').style.display = 'none';
+      document.getElementById('week-grid-container').style.display = 'none';
+      document.getElementById('quick-finish-bar').style.display = 'none';
+      document.getElementById('bulk-panel').style.display = 'none';
+
+      if (newMode === 'bulk') {
+        document.getElementById('card-container').style.display = 'none';
         document.getElementById('hint-top').style.display = 'none';
         document.getElementById('hint-horizontal').style.display = 'none';
         document.getElementById('hint-bottom').style.display = 'none';
+        document.getElementById('bulk-panel').style.display = 'flex';
+        loadBulkOverdueTasks();
+      } else if (newMode === 'week') {
+        document.getElementById('card-container').style.display = 'flex';
+        document.getElementById('week-filter-bar').style.display = 'flex';
+        document.getElementById('week-grid-container').style.display = 'grid';
+        document.getElementById('hint-top').style.display = 'none';
+        document.getElementById('hint-horizontal').style.display = 'none';
+        document.getElementById('hint-bottom').style.display = 'none';
+        reloadTasks();
       } else if (newMode === 'quick') {
-        document.getElementById('week-filter-bar').style.display = 'none';
-        document.getElementById('week-grid-container').style.display = 'none';
+        document.getElementById('card-container').style.display = 'flex';
         document.getElementById('quick-finish-bar').style.display = quickTasksList.length > 0 ? 'block' : 'none';
         document.getElementById('hint-top').style.display = 'block';
         document.getElementById('hint-horizontal').style.display = 'flex';
         document.getElementById('hint-bottom').style.display = 'block';
         updateHints();
+        reloadTasks();
       } else {
-        document.getElementById('week-filter-bar').style.display = 'none';
-        document.getElementById('week-grid-container').style.display = 'none';
-        document.getElementById('quick-finish-bar').style.display = 'none';
+        document.getElementById('card-container').style.display = 'flex';
         document.getElementById('hint-top').style.display = 'block';
         document.getElementById('hint-horizontal').style.display = 'flex';
         document.getElementById('hint-bottom').style.display = 'block';
         updateHints();
+        reloadTasks();
       }
-
-      reloadTasks();
     }
 
     function updateHints() {
@@ -646,6 +691,85 @@
         console.error(err);
         taskTitle.innerText = "Błąd pobierania zadań!";
       }
+    }
+
+    // Tryb 4: Pobieranie zaległych do masowego przeniesienia
+    async function loadBulkOverdueTasks() {
+      const statusEl = document.getElementById('bulk-status');
+      const actionBtn = document.getElementById('bulk-action-btn');
+      statusEl.innerHTML = "Wyszukiwanie zaległych zadań w Google Tasks...";
+      actionBtn.style.display = "none";
+
+      try {
+        const listsRes = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        if (listsRes.status === 401) { logout(); return; }
+
+        const listsData = await listsRes.json();
+        const taskLists = listsData.items || [];
+
+        const now = new Date();
+        const currTodayStr = now.toISOString().split('T')[0];
+        bulkOverdueTasks = [];
+
+        for (const list of taskLists) {
+          const res = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&maxResults=100`, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
+          const data = await res.json();
+          const items = data.items || [];
+
+          const filtered = items.filter(t => {
+            return t.title && t.title.trim() !== '' && t.due && t.due.split('T')[0] < currTodayStr;
+          }).map(t => ({ ...t, listId: list.id }));
+
+          bulkOverdueTasks = bulkOverdueTasks.concat(filtered);
+        }
+
+        if (bulkOverdueTasks.length === 0) {
+          statusEl.innerHTML = "Świetna robota! 🎉<br><br>Nie masz żadnych zaległych zadań sprzed dzisiaj.";
+          actionBtn.style.display = "none";
+        } else {
+          statusEl.innerHTML = `Znaleziono <b>${bulkOverdueTasks.length}</b> zaległych zadań z przeszłości.<br><br>Czy chcesz przenieść je wszystkie na dziś?`;
+          actionBtn.style.display = "block";
+          actionBtn.innerText = `Przełóż ${bulkOverdueTasks.length} zadań na dziś 🚀`;
+        }
+      } catch (err) {
+        console.error(err);
+        statusEl.innerText = "Błąd pobierania zaległych zadań.";
+      }
+    }
+
+    // Tryb 4: Wykonanie masowej aktualizacji daty na dziś
+    async function executeBulkMoveToToday() {
+      const statusEl = document.getElementById('bulk-status');
+      const actionBtn = document.getElementById('bulk-action-btn');
+      actionBtn.style.display = "none";
+
+      const total = bulkOverdueTasks.length;
+      let completedCount = 0;
+      const todayISO = new Date().toISOString();
+
+      for (const task of bulkOverdueTasks) {
+        statusEl.innerHTML = `Przenoszenie zadań na dziś...<br><br><b>${completedCount} / ${total}</b>`;
+        const url = `https://tasks.googleapis.com/tasks/v1/lists/${task.listId}/tasks/${task.id}`;
+
+        try {
+          await fetch(url, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ due: todayISO })
+          });
+        } catch (e) {
+          console.error(`Błąd przy zadaniu ${task.id}:`, e);
+        }
+
+        completedCount++;
+      }
+
+      statusEl.innerHTML = `Gotowe! 🎉<br><br>Wszystkie <b>${total}</b> zadań zostało pomyślnie przeniesionych na dziś.`;
+      bulkOverdueTasks = [];
     }
 
     function showNextTask() {
@@ -808,6 +932,7 @@
       document.getElementById('week-grid-container').style.display = 'none';
       document.getElementById('week-filter-bar').style.display = 'none';
       document.getElementById('quick-finish-bar').style.display = 'none';
+      document.getElementById('bulk-panel').style.display = 'none';
       document.getElementById('quick-list-view').style.display = 'flex';
 
       renderQuickChecklist();
